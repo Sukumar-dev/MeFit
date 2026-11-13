@@ -1,6 +1,6 @@
 # Production Deployment Preparation
 
-This is a deployment checklist and configuration map, not a claim that MeFit is online. It assumes a container platform such as Railway with one web service, one API service, a durable PostgreSQL database, a separate PostgreSQL database for Keycloak, and a Keycloak service. Use separate database credentials for MeFit and Keycloak. Do not import the local development realm into production.
+This document describes the production requirements. The current Render trial configuration is in [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md); it is not production hosting because the selected free Postgres instance expires after 30 days and has no backups. The trial uses one Postgres instance with separate `mefit` and `mefit_keycloak` databases and separate app/identity credentials. Do not import the local development realm into production.
 
 ## Service topology
 
@@ -8,9 +8,8 @@ This is a deployment checklist and configuration map, not a claim that MeFit is 
 | --- | --- | --- | --- |
 | Web | `apps/web/Dockerfile` | Yes, HTTPS | `/` |
 | API | `apps/api/Dockerfile` | Yes, HTTPS | `/ready` |
-| MeFit PostgreSQL | Managed PostgreSQL | No; private network only | Provider health |
-| Keycloak PostgreSQL | Managed PostgreSQL, separate credentials | No; private network only | Provider health |
-| Keycloak | Official Keycloak 26 image, production `start` mode | Yes, HTTPS | `/health/ready` |
+| Render PostgreSQL | Existing managed PostgreSQL with separate logical databases and credentials | No; private network only | Provider health |
+| Keycloak | Keycloak 26.8.2 production `start` mode | Yes, HTTPS | OIDC discovery endpoint |
 
 Configure generated/custom domains before setting origins. The API must be reachable from the user's browser, and the OIDC issuer must be a stable public HTTPS origin. Database URLs should use private service networking.
 
@@ -44,7 +43,7 @@ The platform should expose `/health` for liveness and `/ready` for readiness. `/
 
 ## Keycloak production setup
 
-Use a durable, separate PostgreSQL database. Run the official Keycloak image in production `start` mode, never `start-dev`, and provide the database settings, HTTPS public hostname, and a unique bootstrap administrator credential through the hosting platform's secret manager. Set `KC_HTTP_ENABLED=true` only when the trusted platform ingress terminates HTTPS and forwards proxy headers correctly; configure Keycloak's proxy-header mode to match the platform.
+Use a separate logical PostgreSQL database and role for Keycloak. Run the official Keycloak image in production `start` mode, never `start-dev`, and provide the database settings, HTTPS public hostname, and a unique bootstrap administrator credential through the hosting platform's secret manager. Set `KC_HTTP_ENABLED=true` only when the trusted platform ingress terminates HTTPS and forwards proxy headers correctly; configure Keycloak's proxy-header mode to match the platform.
 
 Create a production `mefit` realm and configure:
 
@@ -54,20 +53,20 @@ Create a production `mefit` realm and configure:
 - Required TOTP enrollment, verified email, password reset, brute-force protections, administrator recovery, and signing-key rotation.
 - Production SMTP settings for verification and password recovery. Test delivery before opening registration.
 
-Do not import `infra/keycloak/mefit-realm.json` in production: it is explicitly for localhost development. Ensure `OIDC_ISSUER` exactly matches the realm's discovery document issuer and the `iss` claim. The API validates issuer, signature, audience, subject, email, and roles.
+Do not import `infra/keycloak/mefit-realm.json` in production: it is explicitly for localhost development. The production-only `infra/keycloak-prod/mefit-realm.json` is used by the Render trial container. Ensure `OIDC_ISSUER` exactly matches the realm's discovery document issuer and the `iss` claim. The API validates issuer, signature, audience, subject, email, and roles.
 
 ## Database and operations
 
 - Use managed PostgreSQL with encryption at rest, private networking, restricted credentials, and a documented recovery point/time objective.
 - Migrations are applied by the API start command. Before first production launch, take a provider snapshot and review the pending migration list.
-- Seed data is a local development action; do not run `db:seed` against the production database unless the owner explicitly asks for approved catalog seed records.
+- The Render trial runs the idempotent catalog-only seed once after the API's first successful migration; it creates no demo users or goals. Review seed changes before any production reuse.
 - Configure independent encrypted backups and retention, alert on failed backups, and schedule a restore drill. Do not write backups only to the container filesystem.
 - Set platform spending limits/alerts before enabling public traffic. Monitor API errors, database capacity, authentication events, and service health.
 - Provide a privacy notice, support contact, user data retention policy, and account deletion process before inviting public users.
 
 ## Pre-launch checklist
 
-- [ ] GitHub repository exists as private and contains no `.env`, local credentials, backups, or client SRS PDF.
+- [ ] GitHub repository contains no `.env`, local credentials, backups, or client SRS PDF.
 - [ ] Production domains resolve and HTTPS is active for web, API, and identity provider.
 - [ ] Web build uses production API and OIDC URLs; no localhost URL remains in built assets.
 - [ ] Keycloak has the production realm/client/audience/TOTP/email configuration above.
@@ -79,4 +78,4 @@ Do not import `infra/keycloak/mefit-realm.json` in production: it is explicitly 
 
 ## Not configured yet
 
-The deployment owner must connect the hosting account, choose/approve a paid plan if needed, set the production domains, create identity/database services, enter the secret values, provision SMTP, and select the production administrator. Do not paste secret values into Git, this README, or chat. This deployment preparation must be completed before a live release can be claimed.
+Render account access and a free Postgres instance are connected, but no application services have been deployed yet. Before a trial sync, rotate the database credential, create the separate Keycloak database/role, and enter the SMTP settings directly in Render. Do not paste secret values into Git, this README, or chat. A production release additionally requires a non-expiring database plan with backups, reliable SMTP, a tested backup/restore process, operational monitoring, and the remaining pre-launch checklist. No paid resources will be selected without the owner's request.

@@ -63,7 +63,7 @@ The production containers are `apps/web/Dockerfile` and `apps/api/Dockerfile`. T
 
 The stack needs a public web origin, an API service, durable PostgreSQL, and a production OIDC provider (Keycloak is supported). Configure exact HTTPS redirect and post-logout URLs on the identity client, configure the API audience, and allow the web origin in API CORS. Set the `VITE_*` values at frontend **build** time and API/database/OIDC values as backend **runtime** variables. The development realm under `infra/keycloak/` is for local use and must not be imported into production.
 
-See [production deployment preparation](docs/PRODUCTION_DEPLOYMENT.md) for the platform topology and required variables. Public production deployment still requires the owner to connect a hosting account, configure production identity and email, and approve any paid service. Do not use local `.env` credentials or local user data in production.
+See [Render trial deployment](docs/RENDER_DEPLOYMENT.md) for the current free-tier Blueprint, database setup, and environment variables. The Render free database expires and has no backups; this configuration is for evaluation, not production use. Do not use local `.env` credentials or local user data in a hosted environment.
 
 ## Documentation
 
@@ -72,6 +72,7 @@ See [production deployment preparation](docs/PRODUCTION_DEPLOYMENT.md) for the p
 - [Database schema](docs/DATABASE_SCHEMA.md)
 - [Installation](docs/INSTALLATION.md)
 - [Production deployment preparation](docs/PRODUCTION_DEPLOYMENT.md)
+- [Render trial deployment](docs/RENDER_DEPLOYMENT.md)
 - [Security and deployment readiness](docs/SECURITY_DEPLOYMENT.md)
 - [Backup and restore](docs/BACKUP_RESTORE.md)
 - [SRS requirements matrix](docs/SRS_REQUIREMENTS_MATRIX.md)
