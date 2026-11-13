@@ -1,0 +1,15 @@
+{
+  "name": "mefit-first-name",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-usermodel-property-mapper",
+  "consentRequired": false,
+  "config": {
+    "user.attribute": "firstName",
+    "claim.name": "given_name",
+    "jsonType.label": "String",
+    "id.token.claim": "true",
+    "access.token.claim": "true",
+    "userinfo.token.claim": "true",
+    "introspection.token.claim": "true"
+  }
+}

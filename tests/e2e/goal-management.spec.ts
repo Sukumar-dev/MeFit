@@ -1,0 +1,82 @@
+import { expect, test } from '@playwright/test'
+import { registerAndCompleteMfa } from './support/register'
+
+test('creates, edits, switches, completes, deletes, reloads, and isolates personalized goals', async ({ page, browser }) => {
+  const owner = await registerAndCompleteMfa(page, { firstName: 'Goal', lastName: 'Manager' })
+  await page.getByRole('link', { name: 'Manage goals' }).click()
+  await page.getByRole('button', { name: 'New goal' }).click()
+
+  await page.getByLabel('Goal name').fill('Endurance base')
+  await page.getByLabel('Fitness objective').selectOption('ENDURANCE')
+  await page.getByLabel('Description').fill('Build a steady weekly routine.')
+  await page.getByLabel('Workout days per week').fill('4')
+  await page.getByLabel('Preferred workout duration (minutes)').fill('45')
+  await page.getByLabel('Difficulty level').selectOption('INTERMEDIATE')
+  await page.getByRole('button', { name: 'Add custom workout' }).click()
+  await page.getByLabel('Workout name').fill('Brisk walk')
+  await page.getByLabel('Workout type').fill('Cardio')
+  await page.getByLabel('Session details').fill('Walk at a comfortable pace.')
+  await page.getByRole('button', { name: 'Create goal' }).click()
+  const firstCard = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Endurance base' }) })
+  await expect(firstCard).toBeVisible()
+  await expect(firstCard).toContainText('4 days/week · 45 min')
+  await expect(firstCard).toContainText('Brisk walk')
+
+  await firstCard.getByRole('button', { name: 'Edit' }).click()
+  await page.getByLabel('Goal name').fill('Endurance and stamina')
+  await page.getByLabel('Workout days per week').fill('5')
+  await page.getByLabel('Personal notes and requirements').fill('Prefer low-impact sessions.')
+  await page.getByRole('button', { name: 'Save changes' }).click()
+  const editedCard = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Endurance and stamina' }) })
+  await expect(editedCard).toContainText('5 days/week · 45 min')
+  await expect(editedCard).toContainText('Prefer low-impact sessions.')
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Endurance and stamina' })).toBeVisible()
+  await page.goto('/goals')
+
+  await editedCard.getByRole('button', { name: 'Pause' }).click()
+  await expect(page.getByRole('heading', { name: 'Paused goals' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'New goal' }).click()
+  await page.getByLabel('Goal name').fill('Mobility routine')
+  await page.getByLabel('Fitness objective').selectOption('FLEXIBILITY')
+  await page.getByRole('button', { name: 'Add custom workout' }).click()
+  await page.getByLabel('Workout name').fill('Stretching')
+  await page.getByLabel('Workout type').fill('Mobility')
+  await page.getByLabel('Session details').fill('Gentle full-body stretches.')
+  await page.getByRole('button', { name: 'Create goal' }).click()
+  const secondCard = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Mobility routine' }) })
+  await expect(secondCard).toBeVisible()
+
+  const pausedCard = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Endurance and stamina' }) })
+  await pausedCard.getByRole('button', { name: 'Resume' }).click()
+  await expect(page.getByRole('alert')).toContainText('overlaps')
+  await secondCard.getByRole('button', { name: 'Pause' }).click()
+  await pausedCard.getByRole('button', { name: 'Resume' }).click()
+  await pausedCard.getByRole('button', { name: 'Complete' }).click()
+  await expect(page.getByRole('heading', { name: 'Completed goals' })).toBeVisible()
+  const completedCard = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Endurance and stamina' }) })
+  await completedCard.getByRole('button', { name: 'Set active' }).click()
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await completedCard.getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByRole('heading', { name: 'Endurance and stamina' })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Mobility routine' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Endurance and stamina' })).toHaveCount(0)
+
+  const secondContext = await browser.newContext({ baseURL: 'http://localhost:5173' })
+  try {
+    const secondPage = await secondContext.newPage()
+    const other = await registerAndCompleteMfa(secondPage, { firstName: 'Other', lastName: 'Member' })
+    const ownerGoals = await page.request.get('http://localhost:4000/api/goal', { headers: { Authorization: `Bearer ${owner.accessToken}` } })
+    const otherGoals = await secondPage.request.get('http://localhost:4000/api/goal', { headers: { Authorization: `Bearer ${other.accessToken}` } })
+    const ownerGoalId = ((await ownerGoals.json()) as { goals: Array<{ id: string }> }).goals[0]?.id
+    expect(ownerGoalId).toBeTruthy()
+    expect(((await otherGoals.json()) as { goals: unknown[] }).goals).toHaveLength(0)
+    const privateGoal = await secondPage.request.get(`http://localhost:4000/api/goal/${ownerGoalId}`, { headers: { Authorization: `Bearer ${other.accessToken}` } })
+    expect(privateGoal.status()).toBe(404)
+  } finally {
+    await secondContext.close()
+  }
+})

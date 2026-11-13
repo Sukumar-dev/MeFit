@@ -1,0 +1,19 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+apps/api/src/generated/
+apps/web/package-lock.json
+prisma/*.db
+backups/
+.DS_Store
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+MeFit Case-SITER.pdf

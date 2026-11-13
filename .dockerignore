@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+node_modules
+**/node_modules
+**/dist
+coverage
+playwright-report
+test-results
+backups
+MeFit Case-SITER.pdf
+docs
+tests
+scripts
+infra/keycloak
+infra/keycloak-config

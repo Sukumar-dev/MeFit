@@ -1,0 +1,53 @@
+import { expect, test } from '@playwright/test'
+import { registerAndCompleteMfa } from './support/register'
+
+test('profile edits and catalog search persist through authenticated APIs', async ({ page }) => {
+  const { accessToken } = await registerAndCompleteMfa(page)
+  await page.goto('/profile/setup')
+  await expect(page.getByRole('heading', { name: /set up your fitness profile/i })).toBeVisible()
+  await page.getByLabel('Height (cm)').fill('172')
+  await page.getByLabel('Weight (kg)').fill('69')
+  await page.getByRole('button', { name: 'Save profile and continue' }).click()
+  await expect(page.getByText(/Profile saved ·/)).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('button', { name: 'Request Contributions' })).toBeVisible()
+  await page.waitForTimeout(30_000)
+  await expect(page).toHaveURL(/\/profile\/setup$/)
+  await expect(page.getByRole('button', { name: 'Request Contributions' })).toBeVisible()
+  await page.getByRole('button', { name: 'Request Contributions' }).click()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole('heading', { name: /welcome, mefit/i })).toBeVisible({ timeout: 10_000 })
+
+  const profileResponse = await page.request.get('http://localhost:4000/api/profile', { headers: { Authorization: `Bearer ${accessToken}` } })
+  expect(profileResponse.ok()).toBeTruthy()
+  const profile = await profileResponse.json() as { height_cm: string; weight_kg: string; readiness: { evaluation: { score: number } } }
+  expect(Number(profile.height_cm)).toBe(172)
+  expect(Number(profile.weight_kg)).toBe(69)
+  expect(profile.readiness.evaluation.score).toBeGreaterThan(0)
+
+  await page.goto('/catalog')
+  await expect(page.getByRole('heading', { name: 'Find your next session' })).toBeVisible()
+  await page.getByLabel('Search catalog').fill('foundation')
+  await expect(page.getByRole('button', { name: /Foundation/ }).first()).toBeVisible({ timeout: 10_000 })
+  await page.getByRole('button', { name: /Foundation/ }).first().click()
+  await expect(page.getByText(/Details/)).toBeVisible()
+  await expect(page.locator('aside').getByRole('heading', { name: /Foundation/ })).toBeVisible()
+  await expect(page.locator('aside').getByRole('listitem').first()).toBeVisible()
+})
+
+test('a user can save a weekly workout goal and mark its workout complete', async ({ page }) => {
+  await registerAndCompleteMfa(page)
+  await page.goto('/goals')
+  await expect(page.getByRole('heading', { name: 'Manage goals' })).toBeVisible()
+  await page.getByRole('button', { name: 'New goal' }).click()
+  await page.getByLabel('Goal name').fill('Weekly training goal')
+  await page.getByRole('button', { name: 'Add custom workout' }).click()
+  await page.getByLabel('Workout name').fill(`E2E walk ${Date.now()}`)
+  await page.getByLabel('Workout type').fill('Cardio')
+  await page.getByLabel('Session details').fill('A test walk session.')
+  await page.getByRole('button', { name: 'Create goal' }).click()
+  const goalCard = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Weekly training goal' }) })
+  await expect(goalCard).toContainText('0/1 sessions complete')
+  await page.getByRole('button', { name: 'Mark done' }).click()
+  await expect(goalCard).toContainText('1/1 sessions complete')
+  await expect(goalCard.getByRole('button', { name: 'Done' })).toBeDisabled()
+})

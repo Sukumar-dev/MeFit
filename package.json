@@ -1,0 +1,26 @@
+{
+  "name": "mefit",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm --workspace apps/api run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "build": "npm --workspace apps/api run build && npm --workspace apps/web run build",
+    "lint": "npm --workspace apps/api run lint && npm --workspace apps/web run lint",
+    "test": "npm --workspace apps/api test && npm --workspace apps/web test",
+    "test:e2e": "playwright test",
+    "db:generate": "npm --workspace apps/api run db:generate",
+    "db:migrate": "npm --workspace apps/api run db:migrate",
+    "db:seed": "npm --workspace apps/api run db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "jsdom": "^29.1.1",
+    "@playwright/test": "^1.58.2"
+  }
+}

@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  CONTRIBUTOR
+  ADMIN
+}
+
+enum GoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+enum ContributorRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                   String               @id @default(uuid()) @db.Uuid
+  oidcSubject          String               @unique
+  email                String               @unique
+  displayName          String
+  firstName            String?
+  lastName             String?
+  disabledAt           DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  roles                UserRole[]
+  profile              Profile?
+  goals                Goal[]
+  exercisesAuthored    Exercise[]            @relation("ExerciseAuthor")
+  workoutsAuthored     Workout[]             @relation("WorkoutAuthor")
+  programsAuthored     Program[]             @relation("ProgramAuthor")
+  contributorRequests  ContributorRequest[]  @relation("Requestor")
+  reviewedRequests     ContributorRequest[]  @relation("Reviewer")
+  completions          WorkoutCompletion[]
+  auditEvents          AuditLog[]             @relation("AuditActor")
+
+  @@index([disabledAt])
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  role      Role
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([role])
+}
+
+model Profile {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @unique @db.Uuid
+  timezone            String   @default("UTC")
+  heightCm            Decimal? @db.Decimal(5, 2)
+  weightKg            Decimal? @db.Decimal(6, 2)
+  activityLevel       String?
+  fitnessExperience   String?
+  readinessAnswers   Json?
+  fitnessLevel        String?
+  evaluationVersion   String?
+  profileImageUrl     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address             Address?
+
+  @@index([fitnessLevel])
+}
+
+model Address {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String   @unique @db.Uuid
+  line1      String
+  line2      String?
+  line3      String?
+  postalCode String?
+  city       String
+  country    String
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Exercise {
+  id                String            @id @default(uuid()) @db.Uuid
+  name              String
+  description       String
+  targetMuscleGroup String
+  imageUrl          String?
+  videoUrl          String?
+  archivedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  creatorId         String?           @db.Uuid
+  creator           User?             @relation("ExerciseAuthor", fields: [creatorId], references: [id], onDelete: SetNull)
+  workoutExercises  WorkoutExercise[]
+
+  @@index([targetMuscleGroup, name])
+  @@index([creatorId])
+  @@index([archivedAt])
+}
+
+model Workout {
+  id               String            @id @default(uuid()) @db.Uuid
+  name             String
+  type             String
+  description      String
+  archivedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  creatorId        String?           @db.Uuid
+  creator          User?             @relation("WorkoutAuthor", fields: [creatorId], references: [id], onDelete: SetNull)
+  exercises        WorkoutExercise[]
+  programWorkouts  ProgramWorkout[]
+  goalWorkouts     GoalWorkout[]
+
+  @@index([type, name])
+  @@index([creatorId])
+  @@index([archivedAt])
+}
+
+model WorkoutExercise {
+  id         String       @id @default(uuid()) @db.Uuid
+  workoutId  String       @db.Uuid
+  exerciseId String       @db.Uuid
+  position   Int
+  workout    Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise   Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  sets       ExerciseSet[]
+
+  @@unique([workoutId, position])
+  @@unique([workoutId, exerciseId])
+  @@index([exerciseId])
+}
+
+model ExerciseSet {
+  id                 String          @id @default(uuid()) @db.Uuid
+  workoutExerciseId  String          @db.Uuid
+  position           Int
+  repetitions        Int?
+  durationSeconds    Int?
+  restSeconds        Int?
+  loadKg             Decimal?        @db.Decimal(7, 2)
+  workoutExercise    WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutExerciseId, position])
+}
+
+model Program {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  category    String
+  description String
+  archivedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  creatorId   String?          @db.Uuid
+  creator     User?            @relation("ProgramAuthor", fields: [creatorId], references: [id], onDelete: SetNull)
+  workouts    ProgramWorkout[]
+  goals       Goal[]
+
+  @@index([category, name])
+  @@index([creatorId])
+  @@index([archivedAt])
+}
+
+model ProgramWorkout {
+  id         String   @id @default(uuid()) @db.Uuid
+  programId  String   @db.Uuid
+  workoutId  String   @db.Uuid
+  position   Int
+  program    Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Restrict)
+
+  @@unique([programId, position])
+  @@unique([programId, workoutId])
+  @@index([workoutId])
+}
+
+model Goal {
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @db.Uuid
+  programId   String?       @db.Uuid
+  name        String        @default("Weekly fitness goal")
+  description String        @default("")
+  objective   String        @default("GENERAL_FITNESS")
+  workoutFrequency Int     @default(3)
+  preferredDuration Int    @default(30)
+  difficulty  String        @default("BEGINNER")
+  notes       String        @default("")
+  startDate   DateTime      @db.Date
+  endDate     DateTime      @db.Date
+  timezone    String
+  status      GoalStatus    @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  program     Program?      @relation(fields: [programId], references: [id], onDelete: SetNull)
+  workouts    GoalWorkout[]
+
+  @@index([userId, status, startDate])
+  @@index([programId])
+}
+
+model GoalWorkout {
+  id                 String              @id @default(uuid()) @db.Uuid
+  goalId             String              @db.Uuid
+  workoutId          String?             @db.Uuid
+  position           Int
+  workoutName        String
+  workoutType        String
+  prescriptionSnapshot Json
+  createdAt          DateTime            @default(now())
+  goal               Goal                @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  workout            Workout?            @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  completion         WorkoutCompletion?
+
+  @@unique([goalId, position])
+  @@index([workoutId])
+}
+
+model WorkoutCompletion {
+  id             String      @id @default(uuid()) @db.Uuid
+  goalWorkoutId  String      @unique @db.Uuid
+  userId         String      @db.Uuid
+  completedAt    DateTime    @default(now())
+  goalWorkout    GoalWorkout @relation(fields: [goalWorkoutId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, completedAt])
+}
+
+model ContributorRequest {
+  id          String                   @id @default(uuid()) @db.Uuid
+  userId      String                   @db.Uuid
+  status      ContributorRequestStatus @default(PENDING)
+  message     String?
+  reviewerId  String?                  @db.Uuid
+  reviewedAt  DateTime?
+  createdAt   DateTime                 @default(now())
+  user        User                     @relation("Requestor", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer    User?                    @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
