@@ -14,7 +14,7 @@ Create a fresh default credential before applying the Blueprint:
 
 1. Open the `MeFit` Postgres service in Render and select **Info**.
 2. Under **Credentials**, choose **+ New default credential**. Use a new name and save the generated credential in a password manager.
-3. Delete the previous default credential from the same Credentials section. There are no MeFit services deployed yet, so nothing needs a connection update.
+3. Delete the previous default credential from the same Credentials section. There are no MeFit services deployed yet; if your local `.env` uses the previous URL, update it privately after rotation.
 4. In **Connect**, copy the **External** connection URL for the SQL setup below. Use the **Internal** URL only for the deployed services.
 
 Create a separate logical database and role for Keycloak (the free Render allowance permits only one Postgres *instance* in the workspace, but that instance can hold multiple databases). The default database user has `CREATEDB` and `CREATEROLE` privileges. On your Mac, if `psql` is not installed, install the PostgreSQL client with Homebrew:
@@ -43,6 +43,8 @@ CREATE DATABASE mefit_keycloak OWNER mefit_keycloak;
 ```
 
 Store the password entered at `\password` in your password manager. Do not send either database credential in chat or commit it to the repository.
+
+After the database and role are created, remove `0.0.0.0/0` from the database's external IP allow list if you do not need external database clients. Render services in the same workspace and region continue to connect through the internal network.
 
 ## Blueprint environment values
 
