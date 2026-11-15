@@ -3,7 +3,7 @@
 `render.yaml` defines three free web services in Virginia and reuses the existing Render Postgres database named `MeFit`:
 
 - `mefit-web-sukumar`: React/Vite app served by Nginx
-- `mefit-api-sukumar`: API; deploys Prisma migrations, then seeds the catalog once on its first successful deploy
+- `mefit-api-sukumar`: API; deploys Prisma migrations, then idempotently seeds the exercise/workout/program catalog on startup
 - `mefit-auth-sukumar`: Keycloak 26.8.2 with the hosted `mefit` realm, exact web callback/origin, PKCE S256, API audience, and TOTP enrollment
 
 For this temporary free trial, the API and Keycloak share the same logical database and Render-managed database credential. This avoids manual SQL setup. Before production, move Keycloak to its own database and role.
@@ -29,7 +29,7 @@ The Keycloak bootstrap admin username is `mefit-admin`; Render generates its pas
 
 ## Deploy and verify
 
-After rotating credentials, create the Blueprint from `https://github.com/Sukumar-dev/MeFit`, branch `main`, file `render.yaml`, in the `sukumar's workspace` workspace. Review the free-only three-service plan and apply it. The API runs the existing Prisma migrations at startup; its first successful deploy seeds only the versioned exercise/workout/program catalog. The seed is idempotent and does not create demo users or goals.
+After rotating credentials, create the Blueprint from `https://github.com/Sukumar-dev/MeFit`, branch `main`, file `render.yaml`, in the `sukumar's workspace` workspace. Review the free-only three-service plan and apply it. The API runs the existing Prisma migrations and idempotent catalog seed at startup; the seed creates or updates only the versioned exercise/workout/program catalog and does not create demo users or goals.
 
 Expected public URLs:
 

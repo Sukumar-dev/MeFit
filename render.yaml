@@ -10,7 +10,6 @@ services:
     dockerfilePath: apps/api/Dockerfile
     dockerContext: .
     healthCheckPath: /ready
-    initialDeployHook: npm run db:seed:prod --workspace apps/api
     envVars:
       - key: NODE_ENV
         value: production
