@@ -81,6 +81,53 @@ async function ensureKeycloakIdentityScopes() {
     const clientId = webClients[0]?.id
     if (!clientId) throw new Error('Keycloak mefit-web client is missing; cannot provision identity scopes.')
 
+    // Keycloak 26 moved the access-token `sub` claim into the Subject (sub)
+    // protocol mapper in the `basic` scope. The imported realm did not attach
+    // that scope, so the API could verify tokens but had no stable user ID.
+    await tx.$executeRaw`
+      INSERT INTO client_scope (id, name, realm_id, protocol)
+      VALUES (${randomUUID()}, 'basic', ${realmId}, 'openid-connect')
+      ON CONFLICT (realm_id, name) DO NOTHING
+    `
+    const basicScopes = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM client_scope WHERE realm_id = ${realmId} AND name = 'basic' LIMIT 1
+    `
+    const basicScopeId = basicScopes[0]?.id
+    if (!basicScopeId) throw new Error('Keycloak basic scope could not be created.')
+    await tx.$executeRaw`
+      INSERT INTO client_scope_attributes (scope_id, name, value)
+      VALUES (${basicScopeId}, 'include.in.token.scope', 'true'), (${basicScopeId}, 'display.on.consent.screen', 'false')
+      ON CONFLICT (scope_id, name) DO UPDATE SET value = EXCLUDED.value
+    `
+    await tx.$executeRaw`
+      INSERT INTO client_scope_client (client_id, scope_id, default_scope)
+      VALUES (${clientId}, ${basicScopeId}, true)
+      ON CONFLICT (client_id, scope_id) DO UPDATE SET default_scope = true
+    `
+    const subjectMappers = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM protocol_mapper WHERE client_scope_id = ${basicScopeId} AND protocol_mapper_name = 'oidc-sub-mapper' LIMIT 1
+    `
+    const subjectMapperId = subjectMappers[0]?.id ?? randomUUID()
+    if (!subjectMappers[0]) {
+      await tx.$executeRaw`
+        INSERT INTO protocol_mapper (id, name, protocol, protocol_mapper_name, client_scope_id)
+        VALUES (${subjectMapperId}, 'mefit-subject', 'openid-connect', 'oidc-sub-mapper', ${basicScopeId})
+      `
+    }
+    for (const [name, value] of [
+      ['access.token.claim', 'true'],
+      ['id.token.claim', 'true'],
+      ['userinfo.token.claim', 'true'],
+      ['introspection.token.claim', 'true'],
+      ['lightweight.claim', 'true'],
+    ] as const) {
+      await tx.$executeRaw`
+        INSERT INTO protocol_mapper_config (protocol_mapper_id, name, value)
+        VALUES (${subjectMapperId}, ${name}, ${value})
+        ON CONFLICT (protocol_mapper_id, name) DO UPDATE SET value = EXCLUDED.value
+      `
+    }
+
     const scopeDefinitions = [
       { name: 'profile', mappers: [
         { name: 'mefit-first-name', attribute: 'firstName', claim: 'given_name' },

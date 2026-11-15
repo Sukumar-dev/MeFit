@@ -80,6 +80,7 @@
         "post.logout.redirect.uris": "https://mefit-web-sukumar.onrender.com/login"
       },
       "defaultClientScopes": [
+        "basic",
         "web-origins",
         "roles",
         "profile",
