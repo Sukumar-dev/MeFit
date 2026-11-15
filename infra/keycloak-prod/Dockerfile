@@ -6,7 +6,7 @@ ENV KC_DB=postgres \
 
 COPY infra/keycloak-prod/mefit-realm.json /opt/keycloak/data/import/mefit-realm.json
 COPY infra/keycloak-prod/entrypoint.sh /opt/keycloak/entrypoint.sh
-RUN microdnf install -y curl jq && microdnf clean all && chmod +x /opt/keycloak/entrypoint.sh
+RUN chmod +x /opt/keycloak/entrypoint.sh
 
 RUN /opt/keycloak/bin/kc.sh build --db=postgres
 
