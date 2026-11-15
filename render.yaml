@@ -77,17 +77,6 @@ services:
         value: "true"
       - key: KC_METRICS_ENABLED
         value: "true"
-      - key: MEFIT_SMTP_HOST
-        sync: false
-      - key: MEFIT_SMTP_PORT
-        sync: false
-      - key: MEFIT_SMTP_FROM
-        sync: false
-      - key: MEFIT_SMTP_USERNAME
-        sync: false
-      - key: MEFIT_SMTP_PASSWORD
-        sync: false
-
   - type: web
     name: mefit-web-sukumar
     runtime: docker

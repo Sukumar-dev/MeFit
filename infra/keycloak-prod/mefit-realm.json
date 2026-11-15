@@ -6,9 +6,9 @@
   "registrationEmailAsUsername": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": true,
+  "resetPasswordAllowed": false,
   "rememberMe": false,
-  "verifyEmail": true,
+  "verifyEmail": false,
   "bruteForceProtected": true,
   "failureFactor": 5,
   "waitIncrementSeconds": 60,
@@ -30,14 +30,6 @@
       "enabled": true,
       "defaultAction": true,
       "priority": 10
-    },
-    {
-      "alias": "VERIFY_EMAIL",
-      "name": "Verify Email",
-      "enabled": true,
-      "defaultAction": true,
-      "priority": 20,
-      "providerId": "VERIFY_EMAIL"
     }
   ],
   "roles": {
@@ -166,14 +158,5 @@
     }
   ],
   "sslRequired": "external",
-  "smtpServer": {
-    "host": "${MEFIT_SMTP_HOST}",
-    "port": "${MEFIT_SMTP_PORT}",
-    "from": "${MEFIT_SMTP_FROM}",
-    "auth": "true",
-    "user": "${MEFIT_SMTP_USERNAME}",
-    "password": "${MEFIT_SMTP_PASSWORD}",
-    "starttls": "true"
-  },
   "users": []
 }

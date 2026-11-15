@@ -4,7 +4,7 @@
 
 - `mefit-web-sukumar`: React/Vite app served by Nginx
 - `mefit-api-sukumar`: API; deploys Prisma migrations, then seeds the catalog once on its first successful deploy
-- `mefit-auth-sukumar`: Keycloak 26.8.2 with the hosted `mefit` realm, exact web callback/origin, PKCE S256, API audience, TOTP enrollment, and email verification
+- `mefit-auth-sukumar`: Keycloak 26.8.2 with the hosted `mefit` realm, exact web callback/origin, PKCE S256, API audience, and TOTP enrollment
 
 For this temporary free trial, the API and Keycloak share the same logical database and Render-managed database credential. This avoids manual SQL setup. Before production, move Keycloak to its own database and role.
 
@@ -23,21 +23,13 @@ After rotating the credential, remove `0.0.0.0/0` from the database's external I
 
 ## Blueprint environment values
 
-The Blueprint obtains the MeFit API's database connection from the existing `MeFit` database using Render's `fromDatabase` reference. For Keycloak, it uses the same instance's private host/port but a separate database and role. `sync: false` values should be entered in Render's protected service Environment pages (or the initial Blueprint approval screen), not in Git or chat:
+The Blueprint obtains the MeFit API and Keycloak database settings from the existing `MeFit` database using Render's `fromDatabase` references. Since no email provider is configured, email verification is disabled for this trial so new users can register. Password-reset emails are unavailable until an email sender is configured. Before using real accounts, configure a supported email sender and turn email verification back on in the Keycloak realm.
 
-| Service | Variable | Value to enter |
-| --- | --- | --- |
-| Keycloak | `MEFIT_SMTP_HOST` | Host supplied by your email provider |
-| Keycloak | `MEFIT_SMTP_PORT` | SMTP port your provider supports from Render; avoid 25, 465, and 587 on Free services |
-| Keycloak | `MEFIT_SMTP_FROM` | Verified sender address |
-| Keycloak | `MEFIT_SMTP_USERNAME` | SMTP username |
-| Keycloak | `MEFIT_SMTP_PASSWORD` | SMTP password or provider-specific credential |
-
-The Keycloak bootstrap admin username is `mefit-admin`; Render generates its password. Retrieve it from the Keycloak service's **Environment** page and store it privately. The production realm import contains no users and requires email verification and TOTP enrollment. Do not enable public registration until valid SMTP delivery has been tested.
+The Keycloak bootstrap admin username is `mefit-admin`; Render generates its password. Retrieve it from the Keycloak service's **Environment** page and store it privately. The realm import contains no users and requires TOTP enrollment.
 
 ## Deploy and verify
 
-After rotating credentials, create the Blueprint from `https://github.com/Sukumar-dev/MeFit`, branch `main`, file `render.yaml`, in the `sukumar's workspace` workspace. Review the free-only three-service plan and apply it. Configure the manual SMTP variables above in Render. The API runs the existing Prisma migrations at startup; its first successful deploy seeds only the versioned exercise/workout/program catalog. The seed is idempotent and does not create demo users or goals.
+After rotating credentials, create the Blueprint from `https://github.com/Sukumar-dev/MeFit`, branch `main`, file `render.yaml`, in the `sukumar's workspace` workspace. Review the free-only three-service plan and apply it. The API runs the existing Prisma migrations at startup; its first successful deploy seeds only the versioned exercise/workout/program catalog. The seed is idempotent and does not create demo users or goals.
 
 Expected public URLs:
 
@@ -45,4 +37,4 @@ Expected public URLs:
 - API: `https://mefit-api-sukumar.onrender.com/health` and `/ready`
 - Keycloak discovery: `https://mefit-auth-sukumar.onrender.com/realms/mefit/.well-known/openid-configuration`
 
-Check the API `/health` endpoint for process health and `/ready` for PostgreSQL connectivity. Check Keycloak's discovery endpoint and Render service logs. Complete SMTP verification, register a real account, sign in, exercise profile/goals/library flows, and verify the rendered browser UI before calling the deployment ready. Free web services sleep when idle, so the first request can be slow.
+Check the API `/health` endpoint for process health and `/ready` for PostgreSQL connectivity. Check Keycloak's discovery endpoint and Render service logs. Register a test account, complete TOTP enrollment, sign in, exercise profile/goals/library flows, and verify the rendered browser UI. Free web services sleep when idle, so the first request can be slow.
