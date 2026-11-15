@@ -1,6 +1,6 @@
 # Production Deployment Preparation
 
-This document describes the production requirements. The current Render trial configuration is in [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md); it is not production hosting because the selected free Postgres instance expires after 30 days and has no backups. The trial uses one Postgres instance with separate `mefit` and `mefit_keycloak` databases and separate app/identity credentials. Do not import the local development realm into production.
+This document describes the production requirements. The current Render trial configuration is in [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md); it is not production hosting because the selected free Postgres instance expires after 30 days and has no backups. The trial temporarily shares the `mefit` database and managed credential between the API and Keycloak. Production must use a separate logical database and role for Keycloak. Do not import the local development realm into production.
 
 ## Service topology
 

@@ -1,5 +1,5 @@
 # MeFit trial deployment on Render.
-# This reuses the existing Render Postgres instance via dashboard-managed secrets.
+# Evaluation only: reuse the existing Render Postgres database for both API and Keycloak.
 # Free services are for evaluation only: Postgres expires after 30 days and has no backups.
 services:
   - type: web
@@ -48,11 +48,17 @@ services:
           name: MeFit
           property: port
       - key: KC_DB_URL_DATABASE
-        value: mefit_keycloak
+        fromDatabase:
+          name: MeFit
+          property: database
       - key: KC_DB_USERNAME
-        sync: false
+        fromDatabase:
+          name: MeFit
+          property: user
       - key: KC_DB_PASSWORD
-        sync: false
+        fromDatabase:
+          name: MeFit
+          property: password
       - key: KC_BOOTSTRAP_ADMIN_USERNAME
         value: mefit-admin
       - key: KC_BOOTSTRAP_ADMIN_PASSWORD
