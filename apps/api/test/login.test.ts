@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../src/app.js'
 
 const validRequest = {
@@ -11,6 +11,26 @@ const validRequest = {
 }
 
 describe('OIDC login bootstrap', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('waits for the identity provider to finish a cold start in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const providerMetadata = { issuer: 'http://localhost:8080/realms/mefit' }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('starting', { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(providerMetadata), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await request(createApp()).post('/api/login').send(validRequest)
+
+    expect(response.status).toBe(200)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(response.body.authorization_url).toContain('/protocol/openid-connect/auth?')
+  })
+
   it('returns an authorization-code URL with the supplied PKCE challenge', async () => {
     const response = await request(createApp()).post('/api/login').send(validRequest)
     expect(response.status).toBe(200)
