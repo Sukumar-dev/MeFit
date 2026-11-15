@@ -1,4 +1,5 @@
 import '../src/env.js'
+import { randomUUID } from 'node:crypto'
 import { prisma } from '../src/db.js'
 
 const exercises = [
@@ -63,7 +64,86 @@ async function main() {
     })
   }
 
+  await ensureKeycloakIdentityScopes()
+
   console.info(`Seeded ${exercises.length} exercises, ${workouts.length} workouts, and ${programs.length} programs.`)
+}
+
+async function ensureKeycloakIdentityScopes() {
+  await prisma.$transaction(async (tx) => {
+    const realms = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM realm WHERE name = 'mefit' LIMIT 1`
+    const realmId = realms[0]?.id
+    if (!realmId) throw new Error('Keycloak MeFit realm is missing; cannot provision identity scopes.')
+
+    const webClients = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM client WHERE realm_id = ${realmId} AND client_id = 'mefit-web' LIMIT 1
+    `
+    const clientId = webClients[0]?.id
+    if (!clientId) throw new Error('Keycloak mefit-web client is missing; cannot provision identity scopes.')
+
+    const scopeDefinitions = [
+      { name: 'profile', mappers: [
+        { name: 'mefit-first-name', attribute: 'firstName', claim: 'given_name' },
+        { name: 'mefit-last-name', attribute: 'lastName', claim: 'family_name' },
+      ] },
+      { name: 'email', mappers: [
+        { name: 'mefit-email', attribute: 'email', claim: 'email' },
+      ] },
+    ]
+
+    for (const scopeDefinition of scopeDefinitions) {
+      await tx.$executeRaw`
+        INSERT INTO client_scope (id, name, realm_id, protocol)
+        VALUES (${randomUUID()}, ${scopeDefinition.name}, ${realmId}, 'openid-connect')
+        ON CONFLICT (realm_id, name) DO NOTHING
+      `
+      const scopes = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM client_scope WHERE realm_id = ${realmId} AND name = ${scopeDefinition.name} LIMIT 1
+      `
+      const scopeId = scopes[0]?.id
+      if (!scopeId) throw new Error(`Keycloak ${scopeDefinition.name} scope could not be created.`)
+
+      await tx.$executeRaw`
+        INSERT INTO client_scope_attributes (scope_id, name, value)
+        VALUES (${scopeId}, 'include.in.token.scope', 'true'), (${scopeId}, 'display.on.consent.screen', 'false')
+        ON CONFLICT (scope_id, name) DO UPDATE SET value = EXCLUDED.value
+      `
+      await tx.$executeRaw`
+        INSERT INTO client_scope_client (client_id, scope_id, default_scope)
+        VALUES (${clientId}, ${scopeId}, true)
+        ON CONFLICT (client_id, scope_id) DO UPDATE SET default_scope = true
+      `
+
+      for (const mapper of scopeDefinition.mappers) {
+        const existing = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT id FROM protocol_mapper WHERE client_scope_id = ${scopeId} AND name = ${mapper.name} LIMIT 1
+        `
+        const mapperId = existing[0]?.id ?? randomUUID()
+        if (!existing[0]) {
+          await tx.$executeRaw`
+            INSERT INTO protocol_mapper (id, name, protocol, protocol_mapper_name, client_scope_id)
+            VALUES (${mapperId}, ${mapper.name}, 'openid-connect', 'oidc-usermodel-property-mapper', ${scopeId})
+          `
+        }
+
+        const config = [
+          ['user.attribute', mapper.attribute],
+          ['claim.name', mapper.claim],
+          ['jsonType.label', 'String'],
+          ['id.token.claim', 'true'],
+          ['access.token.claim', 'true'],
+          ['userinfo.token.claim', 'true'],
+        ] as const
+        for (const [name, value] of config) {
+          await tx.$executeRaw`
+            INSERT INTO protocol_mapper_config (protocol_mapper_id, name, value)
+            VALUES (${mapperId}, ${name}, ${value})
+            ON CONFLICT (protocol_mapper_id, name) DO UPDATE SET value = EXCLUDED.value
+          `
+        }
+      }
+    }
+  })
 }
 
 main()
