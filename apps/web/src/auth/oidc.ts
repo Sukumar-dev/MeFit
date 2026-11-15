@@ -32,12 +32,21 @@ export async function startSignIn(flow: 'login' | 'register'): Promise<void> {
     code_challenge: requestUrl.searchParams.get('code_challenge'),
     flow,
   }
-  const response = await fetch(`${apiUrl.replace(/\/$/, '')}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(5000),
-  })
+  let response: Response
+  try {
+    // Render's free services can take a while to wake after being idle.
+    response = await fetch(`${apiUrl.replace(/\/$/, '')}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(90_000),
+    })
+  } catch (cause) {
+    if (cause instanceof DOMException && cause.name === 'TimeoutError') {
+      throw new Error('MeFit is waking up after being idle. Please wait a moment and try signing in again.')
+    }
+    throw new Error('MeFit could not reach the sign-in service. Please check your connection and try again.')
+  }
   const result = await response.json() as { authorization_url?: string; error?: { message?: string } }
   if (!response.ok || !result.authorization_url) {
     throw new Error(result.error?.message ?? 'Sign-in could not be started. Please try again.')
