@@ -21,33 +21,6 @@ const loginRequestSchema = z.object({
 
 const router = Router()
 
-// Keep each response below Render's proxy timeout. The browser retries this
-// endpoint, allowing a cold Keycloak boot to span multiple short requests.
-const readinessTimeoutMs = 75_000
-const readinessRequestTimeoutMs = 5_000
-const readinessPollIntervalMs = 1_000
-
-async function waitForIdentityProvider(issuer: string): Promise<boolean> {
-  const deadline = Date.now() + readinessTimeoutMs
-  const discoveryUrl = `${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`
-
-  while (Date.now() < deadline) {
-    try {
-      const result = await fetch(discoveryUrl, { signal: AbortSignal.timeout(readinessRequestTimeoutMs) })
-      if (result.ok) {
-        const metadata: unknown = await result.json()
-        if (typeof metadata === 'object' && metadata !== null && 'issuer' in metadata && metadata.issuer === issuer.replace(/\/$/, '')) {
-          return true
-        }
-      }
-    } catch {
-      // A sleeping Render identity service can refuse or time out requests until boot completes.
-    }
-    await new Promise((resolve) => setTimeout(resolve, Math.min(readinessPollIntervalMs, Math.max(0, deadline - Date.now()))))
-  }
-  return false
-}
-
 router.post('/login', loginLimiter, async (request, response) => {
   const parsed = loginRequestSchema.safeParse(request.body)
   if (!parsed.success) {
@@ -74,11 +47,9 @@ router.post('/login', loginLimiter, async (request, response) => {
     return
   }
 
-  if (process.env.NODE_ENV === 'production' && !(await waitForIdentityProvider(issuer))) {
-    response.status(503).json({ error: { code: 'IDENTITY_UNAVAILABLE', message: 'Sign-in is taking longer than expected. Please try again in a moment.' } })
-    return
-  }
-
+  // Building an authorization URL is local work. Let the user's browser
+  // initiate the Keycloak request so a sleeping provider can wake on demand
+  // without holding this API request open or causing a preflight timeout.
   const authorizationUrl = new URL(`${issuer.replace(/\/$/, '')}/protocol/openid-connect/auth`)
   authorizationUrl.searchParams.set('client_id', process.env.OIDC_CLIENT_ID ?? 'mefit-web')
   authorizationUrl.searchParams.set('redirect_uri', redirectUri.toString())

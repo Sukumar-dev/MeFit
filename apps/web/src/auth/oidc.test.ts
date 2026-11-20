@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const oidcMocks = vi.hoisted(() => ({
   settings: undefined as Record<string, unknown> | undefined,
@@ -20,12 +20,14 @@ vi.mock('oidc-client-ts', () => ({
 import { startSignIn } from './oidc'
 
 describe('production OIDC cold-start handling', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
   beforeEach(() => {
     oidcMocks.createSigninRequest.mockReset()
   })
 
   it('allows the identity provider time to wake before OIDC requests time out', () => {
-    expect(oidcMocks.settings?.requestTimeoutInSeconds).toBe(90)
+    expect(oidcMocks.settings?.requestTimeoutInSeconds).toBe(15)
     const metadata = oidcMocks.settings?.metadata as Record<string, string>
     expect(metadata.authorization_endpoint).toBe('http://localhost:8080/realms/mefit/protocol/openid-connect/auth')
     expect(metadata.token_endpoint).toBe('http://localhost:8080/realms/mefit/protocol/openid-connect/token')
@@ -36,5 +38,30 @@ describe('production OIDC cold-start handling', () => {
 
     await expect(startSignIn('login')).rejects.toThrow('MeFit sign-in is waking up after being idle.')
     expect(oidcMocks.createSigninRequest).toHaveBeenCalledOnce()
+  })
+
+  it('starts login directly with the OIDC URL without calling the API first', async () => {
+    oidcMocks.createSigninRequest.mockResolvedValue({ url: 'https://identity.example.test/authorize?state=secure-state' })
+    const assign = vi.fn()
+    vi.stubGlobal('window', { crypto: window.crypto, location: { assign } })
+    const apiFetch = vi.fn()
+    vi.stubGlobal('fetch', apiFetch)
+
+    await startSignIn('login')
+
+    expect(assign).toHaveBeenCalledWith('https://identity.example.test/authorize?state=secure-state')
+    expect(oidcMocks.createSigninRequest).toHaveBeenCalledWith(expect.objectContaining({ request_type: 'si:r', nonce: expect.any(String) }))
+    expect(apiFetch).not.toHaveBeenCalled()
+  })
+
+  it('preserves the Keycloak registration prompt in the generated secure request', async () => {
+    oidcMocks.createSigninRequest.mockResolvedValue({ url: 'https://identity.example.test/authorize?prompt=create' })
+    const assign = vi.fn()
+    vi.stubGlobal('window', { crypto: window.crypto, location: { assign } })
+
+    await startSignIn('register')
+
+    expect(oidcMocks.createSigninRequest).toHaveBeenCalledWith(expect.objectContaining({ extraQueryParams: { prompt: 'create' } }))
+    expect(assign).toHaveBeenCalledWith('https://identity.example.test/authorize?prompt=create')
   })
 })

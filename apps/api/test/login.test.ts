@@ -16,18 +16,15 @@ describe('OIDC login bootstrap', () => {
     vi.unstubAllGlobals()
   })
 
-  it('waits for the identity provider to finish a cold start in production', async () => {
+  it('returns the OIDC URL immediately without probing the identity provider', async () => {
     vi.stubEnv('NODE_ENV', 'production')
-    const providerMetadata = { issuer: 'http://localhost:8080/realms/mefit' }
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response('starting', { status: 503 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(providerMetadata), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
     const response = await request(createApp()).post('/api/login').send(validRequest)
 
     expect(response.status).toBe(200)
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).not.toHaveBeenCalled()
     expect(response.body.authorization_url).toContain('/protocol/openid-connect/auth?')
   })
 

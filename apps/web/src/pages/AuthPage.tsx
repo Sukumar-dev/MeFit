@@ -58,7 +58,7 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
             disabled={pending}
             className="mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-70"
           >
-            {pending ? 'Connecting securely…' : flow === 'login' ? 'Continue to sign in' : 'Continue to registration'}
+            {pending ? 'Connecting securely…' : error ? 'Try again' : flow === 'login' ? 'Continue to sign in' : 'Continue to registration'}
             {!pending && <ArrowRight size={18} />}
           </button>
           <p className="mt-4 text-center text-xs leading-5 text-slate-500">Sign-in and two-step verification are securely handled by the identity provider.</p>
