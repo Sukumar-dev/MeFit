@@ -10,7 +10,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
-    "start:prod": "npm run db:deploy && npm run db:seed:prod && npm run start",
+    "start:prod": "npm run db:deploy && npm run start",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "db:generate": "prisma generate --schema prisma/schema.prisma",

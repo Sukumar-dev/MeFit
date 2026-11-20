@@ -7,13 +7,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<AppSession | null>(() => readSession())
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setSessionState(readSession())
-    }, 10_000)
-    return () => window.clearInterval(timer)
-  }, [])
-
-  useEffect(() => {
     if (!session?.accessToken) return
     const controller = new AbortController()
     fetch(`${apiUrl.replace(/\/$/, '')}/user`, {

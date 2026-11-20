@@ -3,12 +3,12 @@
 `render.yaml` defines three free web services in Virginia and reuses the existing Render Postgres database named `MeFit`:
 
 - `mefit-web-sukumar`: React/Vite app served by Nginx
-- `mefit-api-sukumar`: API; deploys Prisma migrations, then idempotently seeds the exercise/workout/program catalog on startup
+- `mefit-api-sukumar`: API; deploys Prisma migrations on startup. Seed the exercise/workout/program catalog once when provisioning a new database (`npm run db:seed`); do not reseed on each process restart.
 - `mefit-auth-sukumar`: Keycloak 26.8.2 with the hosted `mefit` realm, exact web callback/origin, PKCE S256, API audience, and TOTP enrollment
 
 For this temporary free trial, the API and Keycloak share the same logical database and Render-managed database credential. This avoids manual SQL setup. Before production, move Keycloak to its own database and role.
 
-This is a trial deployment, not production hosting. Render's Free Postgres has a 1 GB limit, no backups, and expires 30 days after creation. Free web services sleep after 15 idle minutes, can take about a minute to wake, and cannot send SMTP traffic over ports 25, 465, or 587. Keep production data off this database and export anything needed before it expires. See [Render's free plan limits](https://render.com/docs/free).
+This is a trial deployment, not production hosting. Render's Free Postgres has a 1 GB limit, no backups, and expires 30 days after creation. Free web services sleep after 15 idle minutes, can take about a minute to wake, and cannot send SMTP traffic over ports 25, 465, or 587. Free services also have a 512 MiB memory limit; the Keycloak service was repeatedly OOM-killed at that limit. Keep production data off this database and export anything needed before it expires. See [Render's free plan limits](https://render.com/docs/free).
 
 ## Before applying the Blueprint
 
@@ -29,7 +29,7 @@ The Keycloak bootstrap admin username is `mefit-admin`; Render generates its pas
 
 ## Deploy and verify
 
-After rotating credentials, create the Blueprint from `https://github.com/Sukumar-dev/MeFit`, branch `main`, file `render.yaml`, in the `sukumar's workspace` workspace. Review the free-only three-service plan and apply it. The API runs the existing Prisma migrations and idempotent catalog seed at startup; the seed creates or updates only the versioned exercise/workout/program catalog and does not create demo users or goals.
+After rotating credentials, create the Blueprint from `https://github.com/Sukumar-dev/MeFit`, branch `main`, file `render.yaml`, in the `sukumar's workspace` workspace. Review the trial deployment plan and apply it. The Keycloak realm must be imported once into the persistent database when creating a new environment; routine restarts now start Keycloak directly without re-importing it. The API applies migrations on startup; seed a new database once with `npm run db:seed`. The seed creates or updates only the versioned exercise/workout/program catalog and does not create demo users or goals.
 
 Expected public URLs:
 
@@ -37,4 +37,4 @@ Expected public URLs:
 - API: `https://mefit-api-sukumar.onrender.com/health` and `/ready`
 - Keycloak discovery: `https://mefit-auth-sukumar.onrender.com/realms/mefit/.well-known/openid-configuration`
 
-Check the API `/health` endpoint for process health and `/ready` for PostgreSQL connectivity. Check Keycloak's discovery endpoint and Render service logs. Register a test account, complete TOTP enrollment, sign in, exercise profile/goals/library flows, and verify the rendered browser UI. Free web services sleep when idle, so the first request can be slow.
+Check the API `/health` endpoint for process health and `/ready` for PostgreSQL connectivity. Render checks Keycloak's public OIDC discovery endpoint before considering the service ready. Check service logs and confirm no OOM restart events. Register a test account, complete TOTP enrollment, sign in, exercise profile/goals/library flows, and verify the rendered browser UI. Free web services sleep when idle, so the first request can be slow. Reliable 24/7 production service requires paid always-on compute; keep all three web services on paid compute to avoid both sleep delays and the Keycloak 512 MiB limit. The current trial deployment cannot promise always-on availability.

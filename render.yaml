@@ -35,6 +35,7 @@ services:
     plan: free
     dockerfilePath: infra/keycloak-prod/Dockerfile
     dockerContext: .
+    healthCheckPath: /realms/mefit/.well-known/openid-configuration
     envVars:
       - key: KC_DB
         value: postgres
