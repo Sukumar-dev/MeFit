@@ -1,0 +1,79 @@
+# Separate staging stack. Import as a new Render Blueprint; do not replace render.yaml.
+# The Keycloak identity database must be a separate, persistent Postgres database.
+services:
+  - type: web
+    name: mefit-auth-staging-sukumar
+    runtime: docker
+    region: virginia
+    plan: free
+    dockerfilePath: infra/keycloak-staging/Dockerfile
+    dockerContext: .
+    healthCheckPath: /realms/mefit/.well-known/openid-configuration
+    envVars:
+      - key: KC_DB
+        value: postgres
+      - key: KC_DB_URL
+        sync: false
+      - key: KC_DB_USERNAME
+        sync: false
+      - key: KC_DB_PASSWORD
+        sync: false
+      - key: KC_BOOTSTRAP_ADMIN_USERNAME
+        value: mefit-staging-admin
+      - key: KC_BOOTSTRAP_ADMIN_PASSWORD
+        generateValue: true
+      - key: KC_HOSTNAME
+        value: https://mefit-auth-staging-sukumar.onrender.com
+      - key: KC_HOSTNAME_STRICT
+        value: "false"
+      - key: KC_HTTP_ENABLED
+        value: "true"
+      - key: KC_HTTP_PORT
+        value: "10000"
+      - key: KC_PROXY_HEADERS
+        value: xforwarded
+      - key: KC_HEALTH_ENABLED
+        value: "false"
+      - key: KC_METRICS_ENABLED
+        value: "false"
+      - key: KC_CACHE
+        value: local
+      - key: KC_DB_POOL_MAX_SIZE
+        value: "5"
+      - key: KC_DB_POOL_INITIAL_SIZE
+        value: "2"
+      - key: JAVA_OPTS_KC_HEAP
+        value: "-Xms64m -Xmx300m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -Xss512k -XX:ReservedCodeCacheSize=64m"
+      - key: MEFIT_STAGING_WEB_ORIGIN
+        sync: false
+
+  - type: web
+    name: mefit-api-keycloak-staging-sukumar
+    runtime: docker
+    region: virginia
+    plan: free
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
+    # API schema remains in the separate Supabase staging database; do not run
+    # schema migrations until its existing Prisma schema has been baselined.
+    dockerCommand: npm --workspace apps/api run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: WEB_ORIGIN
+        sync: false
+      - key: API_PUBLIC_ORIGIN
+        value: https://mefit-api-keycloak-staging-sukumar.onrender.com
+      - key: AUTH_PROVIDER
+        value: keycloak
+      - key: OIDC_ISSUER
+        value: https://mefit-auth-staging-sukumar.onrender.com/realms/mefit
+      - key: OIDC_AUDIENCE
+        value: mefit-api
+      - key: OIDC_CLIENT_ID
+        value: mefit-web
+      - key: DATABASE_URL
+        sync: false
