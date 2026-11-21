@@ -8,6 +8,26 @@ const router = Router()
 const userUpdateSchema = z.object({ display_name: z.string().trim().min(1).max(120) }).strict()
 const roleUpdateSchema = z.object({ roles: z.array(z.enum([Role.USER, Role.CONTRIBUTOR, Role.ADMIN])).min(1).max(3) }).strict()
 
+async function isVerifiedSupabaseIdentity(request: Parameters<typeof requireAuth>[0]): Promise<boolean> {
+  const baseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '')
+  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY
+  const bearer = request.header('authorization')?.match(/^Bearer\s+([^\s]+)$/i)?.[1]
+  if (!baseUrl || !publishableKey || !bearer) return false
+  try {
+    const response = await fetch(`${baseUrl}/auth/v1/user`, {
+      headers: { apikey: publishableKey, Authorization: `Bearer ${bearer}` },
+      signal: AbortSignal.timeout(5_000),
+    })
+    if (!response.ok) return false
+    const identity = await response.json() as { id?: string; email?: string; email_confirmed_at?: string | null }
+    return identity.id === request.auth?.subject
+      && identity.email?.toLowerCase() === request.auth?.email.toLowerCase()
+      && Boolean(identity.email_confirmed_at)
+  } catch {
+    return false
+  }
+}
+
 async function viewerIsAdmin(subject: string, tokenRoles: readonly string[]) {
   if (hasRole(tokenRoles, 'ADMIN')) return true
   const viewer = await prisma.user.findUnique({ where: { oidcSubject: subject }, select: { roles: { select: { role: true } } } })
@@ -17,7 +37,19 @@ async function viewerIsAdmin(subject: string, tokenRoles: readonly string[]) {
 router.post('/user', requireAuth, async (request, response, next) => {
   try {
     const auth = request.auth!
-    const existing = await prisma.user.findUnique({ where: { oidcSubject: auth.subject }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, disabledAt: true, roles: { select: { role: true } } } })
+    let existing = await prisma.user.findUnique({ where: { oidcSubject: auth.subject }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, disabledAt: true, roles: { select: { role: true } } } })
+    // Preserve an existing MeFit account and its fitness data when its owner
+    // signs in with a newly verified Supabase identity using the same email.
+    if (!existing && process.env.AUTH_PROVIDER === 'supabase') {
+      const priorAccount = await prisma.user.findUnique({ where: { email: auth.email }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, disabledAt: true, roles: { select: { role: true } } } })
+      if (priorAccount) {
+        if (!(await isVerifiedSupabaseIdentity(request))) {
+          response.status(403).json({ error: { code: 'EMAIL_VERIFICATION_REQUIRED', message: 'Verify this email address with Supabase before connecting it to your existing MeFit data.' } })
+          return
+        }
+        existing = await prisma.user.update({ where: { id: priorAccount.id }, data: { oidcSubject: auth.subject }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, disabledAt: true, roles: { select: { role: true } } } })
+      }
+    }
     if (existing?.disabledAt) {
       response.status(403).json({ error: { code: 'ACCOUNT_DISABLED', message: 'This account has been disabled. Contact an administrator.' } })
       return
@@ -167,6 +199,10 @@ router.post('/user/:user_id/update_password', requireAuth, async (request, respo
     const target = await prisma.user.findUnique({ where: { id: userId }, select: { oidcSubject: true } })
     if (!target) return response.status(404).json({ error: { code: 'NOT_FOUND', message: 'The requested user was not found.' } })
     if (target.oidcSubject !== request.auth!.subject && !(await viewerIsAdmin(request.auth!.subject, request.auth!.roles))) return response.status(403).json({ error: { code: 'FORBIDDEN', message: 'You may change only your own password.' } })
+    if (process.env.AUTH_PROVIDER === 'supabase') {
+      response.status(303).location(`${(process.env.WEB_ORIGIN ?? 'http://localhost:5173').replace(/\/$/, '')}/login`).end()
+      return
+    }
     const issuer = process.env.OIDC_ISSUER
     if (!issuer) return response.status(503).json({ error: { code: 'IDENTITY_UNAVAILABLE', message: 'Password management is temporarily unavailable.' } })
     response.status(303).location(`${issuer.replace(/\/$/, '')}/account/#/security/signingin`).end()

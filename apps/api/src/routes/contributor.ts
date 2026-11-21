@@ -23,7 +23,7 @@ function invalid(response: Parameters<Parameters<typeof router.post>[1]>[1], mes
   return response.status(400).json({ error: { code: 'INVALID_INPUT', message } })
 }
 
-router.post('/exercise', requireAuth, requireRole('CONTRIBUTOR'), async (request, response, next) => {
+router.post('/exercise', requireAuth, requireRole('ADMIN'), async (request, response, next) => {
   const parsed = exerciseSchema.safeParse(request.body)
   if (!parsed.success) return invalid(response, 'Check the exercise fields and HTTPS media links.')
   try {
@@ -47,7 +47,7 @@ router.get('/contributor/content', requireAuth, requireRole('CONTRIBUTOR'), asyn
   } catch (error) { next(error) }
 })
 
-router.patch('/exercise/:id', requireAuth, requireRole('CONTRIBUTOR'), async (request, response, next) => {
+router.patch('/exercise/:id', requireAuth, requireRole('ADMIN'), async (request, response, next) => {
   const parsed = exerciseSchema.safeParse(request.body)
   if (!parsed.success) return invalid(response, 'Check the exercise fields and HTTPS media links.')
   try {
@@ -55,19 +55,19 @@ router.patch('/exercise/:id', requireAuth, requireRole('CONTRIBUTOR'), async (re
     if (!actor) return response.status(404).json({ error: { code: 'USER_NOT_REGISTERED', message: 'Complete account setup first.' } })
     const { exists, allowed } = await mayEdit('exercise', request.params.id as string, actor.id, request.auth!.roles.includes('ADMIN'))
     if (!exists) return response.status(404).json({ error: { code: 'NOT_FOUND', message: 'The requested exercise was not found.' } })
-    if (!allowed) return response.status(403).json({ error: { code: 'FORBIDDEN', message: 'You may edit only exercises you contributed.' } })
+    if (!allowed) return response.status(403).json({ error: { code: 'FORBIDDEN', message: 'Only administrators may edit exercises.' } })
     const item = await prisma.exercise.update({ where: { id: request.params.id as string }, data: { name: parsed.data.name, description: parsed.data.description, targetMuscleGroup: parsed.data.target_muscle_group, imageUrl: parsed.data.image_url ?? null, videoUrl: parsed.data.video_url ?? null } })
     response.json({ id: item.id, name: item.name })
   } catch (error) { next(error) }
 })
 
-router.delete('/exercise/:id', requireAuth, requireRole('CONTRIBUTOR'), async (request, response, next) => {
+router.delete('/exercise/:id', requireAuth, requireRole('ADMIN'), async (request, response, next) => {
   try {
     const actor = await prisma.user.findUnique({ where: { oidcSubject: request.auth!.subject }, select: { id: true } })
     if (!actor) return response.status(404).json({ error: { code: 'USER_NOT_REGISTERED', message: 'Complete account setup first.' } })
     const { exists, allowed } = await mayEdit('exercise', request.params.id as string, actor.id, request.auth!.roles.includes('ADMIN'))
     if (!exists) return response.status(404).json({ error: { code: 'NOT_FOUND', message: 'The requested exercise was not found.' } })
-    if (!allowed) return response.status(403).json({ error: { code: 'FORBIDDEN', message: 'You may archive only exercises you contributed.' } })
+    if (!allowed) return response.status(403).json({ error: { code: 'FORBIDDEN', message: 'Only administrators may archive exercises.' } })
     await prisma.exercise.update({ where: { id: request.params.id as string }, data: { archivedAt: new Date() } })
     response.sendStatus(204)
   } catch (error) { next(error) }

@@ -1,12 +1,13 @@
 import { OidcClient, WebStorageStateStore } from 'oidc-client-ts'
 import { clearSession, readSession, storeSession, type AppSession } from './session'
 import { apiUrl } from './api'
+import { oidcAuthority, waitForKeycloak } from './warmup'
 
-const authority = import.meta.env.VITE_OIDC_AUTHORITY ?? 'http://localhost:8080/realms/mefit'
+const authority = oidcAuthority
 export const redirectUri = import.meta.env.VITE_OIDC_REDIRECT_URI ?? `${window.location.origin}/auth/callback`
-// Render's free identity and API services can both need time to wake after idle.
-// Optimized timeout: 15 seconds total with smarter retry logic
-const requestTimeoutInSeconds = 15
+// Allow up to 90 seconds for OIDC token exchange and API account setup after Keycloak redirects back.
+// This does not time-limit the browser's initial navigation while Render wakes Keycloak.
+const requestTimeoutInSeconds = 90
 const issuer = authority.replace(/\/$/, '')
 export { apiUrl } from './api'
 
@@ -31,8 +32,12 @@ export const oidcClient = new OidcClient({
 
 export { readSession, type AppSession } from './session'
 
-export async function startSignIn(flow: 'login' | 'register'): Promise<void> {
+export async function startSignIn(
+  flow: 'login' | 'register',
+  options: { signal?: AbortSignal; onWaiting?: () => void; onElapsed?: (elapsedMs: number) => void } = {},
+): Promise<void> {
   try {
+    await waitForKeycloak(options)
     const request = await oidcClient.createSigninRequest({
       request_type: 'si:r',
       nonce: window.crypto.randomUUID(),
@@ -45,6 +50,8 @@ export async function startSignIn(flow: 'login' | 'register'): Promise<void> {
     // probe and retry loop before the identity provider can start waking up.
     window.location.assign(request.url)
   } catch (cause) {
+    if (options.signal?.aborted) throw cause
+    if (cause instanceof Error && cause.name === 'KeycloakWarmupTimeoutError') throw cause
     if (cause instanceof DOMException && cause.name === 'TimeoutError') {
       throw new Error('MeFit sign-in is waking up after being idle. Please wait a moment and try again.')
     }
@@ -73,6 +80,7 @@ export async function finishSignIn(): Promise<AppSession> {
   }
 
   const session: AppSession = {
+    authProvider: 'keycloak',
     accessToken: result.access_token,
     idToken: result.id_token,
     expiresAt: (result.expires_at ?? Math.floor(Date.now() / 1000) + (result.expires_in ?? 300)) * 1000,

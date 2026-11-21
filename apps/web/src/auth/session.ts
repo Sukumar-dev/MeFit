@@ -1,6 +1,8 @@
 export interface AppSession {
+  authProvider?: 'keycloak' | 'supabase'
+  assuranceLevel?: 'aal1' | 'aal2'
   accessToken: string
-  idToken: string
+  idToken?: string
   expiresAt: number
   user: {
     id: string
@@ -27,7 +29,7 @@ export function readSession(): AppSession | null {
     const stored = window.sessionStorage.getItem(SESSION_KEY)
     if (!stored) return null
     const session = JSON.parse(stored) as AppSession
-    if (!session.accessToken || !session.idToken || session.expiresAt <= Date.now()) {
+    if (!session.accessToken || session.expiresAt <= Date.now()) {
       window.sessionStorage.removeItem(SESSION_KEY)
       return null
     }

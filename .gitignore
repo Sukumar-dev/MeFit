@@ -17,3 +17,5 @@ backups/
 *.p12
 *.pfx
 MeFit Case-SITER.pdf
+.vercel
+.env*
