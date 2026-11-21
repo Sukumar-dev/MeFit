@@ -18,7 +18,7 @@ export function MfaStepForm({ challenge, busy = false, error, onVerify }: {
       {challenge.setup && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
         <h3 className="font-semibold text-emerald-950">Set up your authenticator</h3>
         <p className="mt-1 text-sm leading-6 text-emerald-900">Scan this code with an authenticator app, then enter its current 6-digit code.</p>
-        <img className="mx-auto mt-3 h-40 w-40 rounded-lg bg-white p-2" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(challenge.setup.qrCode)}`} alt="Authenticator setup QR code" />
+        <img className="mx-auto mt-3 h-40 w-40 rounded-lg bg-white p-2" src={challenge.setup.qrCode} alt="Authenticator setup QR code" />
         <p className="mt-2 text-xs text-emerald-900">If you cannot scan, enter this setup key manually:</p>
         <code className="mt-1 block break-all rounded bg-white p-2 text-sm font-semibold text-slate-900">{challenge.setup.secret}</code>
       </div>}

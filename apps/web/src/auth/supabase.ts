@@ -78,7 +78,8 @@ export async function beginMfaChallenge(): Promise<SupabaseMfaStep> {
   if (!factorId) {
     // A user may have left during enrollment. Remove the unverified orphan so
     // retrying sign-in does not accumulate unusable factors or hit factor limits.
-    for (const factor of factors.totp.filter((item) => item.status !== 'verified')) {
+    // The SDK puts pending factors only in `all`, even for TOTP.
+    for (const factor of factors.all.filter((item) => item.factor_type === 'totp' && item.status === 'unverified' && item.friendly_name === 'MeFit authenticator')) {
       const { error } = await auth.mfa.unenroll({ factorId: factor.id })
       if (error) throw error
     }
