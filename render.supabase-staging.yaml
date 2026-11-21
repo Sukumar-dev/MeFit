@@ -1,0 +1,37 @@
+# Separate staging API. Import this file as a Blueprint; do not replace render.yaml.
+# The existing render.yaml continues to run the production API with Keycloak.
+services:
+  - type: web
+    name: mefit-api-staging-sukumar
+    runtime: docker
+    region: virginia
+    plan: free
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
+    # The staging schema already exists in Supabase, but Prisma's migration
+    # history table must be baselined before start:prod can safely run deploys.
+    dockerCommand: npm --workspace apps/api run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: WEB_ORIGIN
+        sync: false
+      - key: API_PUBLIC_ORIGIN
+        value: https://mefit-api-staging-sukumar.onrender.com
+      - key: AUTH_PROVIDER
+        value: supabase
+      - key: SUPABASE_URL
+        value: https://vudfodfzvzsjhnjbyzch.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_ISSUER
+        value: https://vudfodfzvzsjhnjbyzch.supabase.co/auth/v1
+      - key: SUPABASE_JWKS_URL
+        value: https://vudfodfzvzsjhnjbyzch.supabase.co/auth/v1/.well-known/jwks.json
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: DATABASE_URL
+        sync: false
