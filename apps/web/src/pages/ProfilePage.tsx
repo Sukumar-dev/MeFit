@@ -5,6 +5,8 @@ import { useAuth } from '../auth/AuthContext'
 import { apiUrl } from '../auth/api'
 import { useSupabaseAuth } from '../auth/supabase'
 
+const profileSaveTimeoutMs = 60_000
+
 type Evaluation = { score: number; fitness_level: string; suitability_warning: string | null; note: string }
 
 export function ProfilePage() {
@@ -36,6 +38,7 @@ export function ProfilePage() {
     if (!session) return
     setPending(true)
     setError(null)
+    let fitnessDetailsSaved = false
     try {
       const response = await fetch(`${apiUrl.replace(/\/$/, '')}/profile`, {
         method: 'PUT',
@@ -50,16 +53,23 @@ export function ProfilePage() {
           readiness: { days_available: Number(form.days_available), minutes_per_session: Number(form.minutes_per_session), activity_level: form.activity_level, experience: form.experience, limitations: form.limitations },
           ...(form.line1 && form.city && form.country ? { address: { line1: form.line1, city: form.city, country: form.country } } : {}),
         }),
-        signal: AbortSignal.timeout(7000),
+        signal: AbortSignal.timeout(profileSaveTimeoutMs),
       })
       const result = await response.json() as { evaluation?: Evaluation; error?: { message?: string } }
       if (!response.ok || !result.evaluation) throw new Error(result.error?.message ?? 'Your profile could not be saved. Please try again.')
-      const nameResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/user/${session.user.id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ display_name: form.display_name }) })
+      fitnessDetailsSaved = true
+      const nameResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/user/${session.user.id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ display_name: form.display_name }), signal: AbortSignal.timeout(profileSaveTimeoutMs) })
       if (!nameResponse.ok) throw new Error('Fitness details were saved, but your display name could not be updated.')
       setEvaluation(result.evaluation)
       setSession({ ...session, user: { ...session.user, displayName: form.display_name, hasProfile: true } })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Your profile could not be saved. Please try again.')
+      if (cause instanceof DOMException && cause.name === 'TimeoutError') {
+        setError(fitnessDetailsSaved
+          ? 'Your fitness details were saved, but updating your display name timed out. Your entries are still here. Try saving again.'
+          : 'MeFit took too long to confirm the save. Your entries are still here. Try saving again.')
+      } else {
+        setError(cause instanceof Error ? cause.message : 'Your profile could not be saved. Please try again.')
+      }
     } finally { setPending(false) }
   }
 
