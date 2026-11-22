@@ -68,3 +68,11 @@ The route manifest in `server/fitness-contract.mjs` covers 42 method/path combin
 | API-08 | Anonymous and unknown-route cases exercised by the manifest tests | Authenticated create/error contracts not verified |
 
 `013_srs_api_schema.sql` creates the compatibility schema without backfilling existing records. Preview database access requires a server-only `SRS_DATABASE_URL` for the designated staging database. The preview uses the existing explicit route ownership checks; it does not establish a dedicated per-user SQL role or RLS claim context on the Prisma connection.
+
+### Batch 1 verification at commit 4ce0948
+
+- Preview: https://mefit-fitness-planner-lfeam5y88-sukumar9.vercel.app/fitness-api/health
+- `SRS_PREVIEW_URL=<preview-origin> node --test tests/fitness-batch.test.mjs`: **44/44**. Health returned 200, all 41 protected route variants returned 401 without authentication, one unsupported query returned 400, and an unknown route returned JSON 404.
+- Local: **47/47** manifest and profile-handler checks, **25/25** existing API tests on disposable PostgreSQL, **36/36** frontend tests, lint and build passed. Lint retains existing warnings.
+- Migration 013 applied twice on a fresh disposable database. All 16 compatibility tables had RLS enabled.
+- Authenticated role and write tests remain pending. The separate compatibility schema does not import the active planner, exercise library, or profiles.
