@@ -83,3 +83,7 @@ See [Render trial deployment](docs/RENDER_DEPLOYMENT.md) for the current free-ti
 ## Security and privacy
 
 Never commit `.env`, access tokens, passwords, private keys, production certificates, database backups, or real user health information. The client SRS PDF is intentionally excluded from Git; it is not required to build or run the application. Production requires HTTPS, unique secrets, a verified email delivery path, a durable encrypted backup destination, and an operational identity-provider policy.
+
+## Team and participants
+
+Fill in team member names, participant IDs, and responsibilities before submission.

@@ -1,0 +1,50 @@
+erDiagram
+  AUTH_USER ||--o| PROFILES : owns
+  AUTH_USER ||--o{ WEEKLY_WORKOUTS : schedules
+  AUTH_USER ||--o{ WORKOUT_LOGS : records
+  AUTH_USER ||--o{ FITNESS_PROGRESS : measures
+  AUTH_USER ||--o| FITNESS_SETTINGS : configures
+  AUTH_USER ||--o{ USER_FAVORITES : saves
+  EXERCISE_LIBRARY ||--o{ USER_FAVORITES : references
+  PROFILES {
+    uuid id PK,FK
+    text display_name
+    numeric weight_kg
+    numeric height_cm
+    integer days_available
+    integer minutes_per_workout
+  }
+  WEEKLY_WORKOUTS {
+    uuid id PK
+    uuid user_id FK
+    date workout_date
+    boolean completed
+    text exercise_name
+  }
+  WORKOUT_LOGS {
+    uuid id PK
+    uuid user_id FK
+    date performed_on
+    text exercise
+    integer sets
+    integer reps
+  }
+  FITNESS_PROGRESS {
+    uuid id PK
+    uuid user_id FK
+    date measured_on
+    numeric weight_kg
+  }
+  FITNESS_SETTINGS {
+    uuid user_id PK,FK
+    text weight_unit
+  }
+  EXERCISE_LIBRARY {
+    text id PK
+    text slug UK
+    boolean is_active
+  }
+  USER_FAVORITES {
+    uuid user_id PK,FK
+    text exercise_id PK,FK
+  }
