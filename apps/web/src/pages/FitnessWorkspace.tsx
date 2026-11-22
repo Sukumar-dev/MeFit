@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { CalendarPlus, Check, ChevronLeft, ChevronRight, Footprints, GripVertical, Minus, Plus } from 'lucide-react'
 import { Button, Card, Drawer, EmptyState, Skeleton, Toast, WorkspaceNav } from '../components/FitnessDesign'
 import { setTheme, useTheme, type Theme } from '../components/themePreferenceState'
@@ -44,15 +44,28 @@ export function FitnessWorkspace() {
   const [sessionSets, setSessionSets] = useState(0)
   const [summary, setSummary] = useState<number | null>(null)
   const pageTitle = ({'/home': 'Today', '/plan': 'Plan', '/log': 'Workout log', '/progress': 'Progress', '/profile': 'Profile'} as Record<string, string>)[pathname]
-  const [week, setWeek] = useState(0)
+  const [params, setParams] = useSearchParams()
+  const requestedWeek = Number(params.get('week') ?? 0)
+  const week = Number.isInteger(requestedWeek) && Math.abs(requestedWeek) <= 520 ? requestedWeek : 0
+  function setWeek(offset: number) {
+    if (Math.abs(offset) > 520) return
+    setParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (offset) next.set('week', String(offset))
+      else next.delete('week')
+      return next
+    })
+  }
   const [revision, setRevision] = useState(0)
   const [data, setData] = useState<Awaited<ReturnType<typeof load>> | null>(null)
   const [loadError, setLoadError] = useState(false)
   const [actionError, setActionError] = useState('')
   const [pending, setPending] = useState(false)
+  const saveInFlight = useRef(false)
   const [restUntil, setRestUntil] = useState(0)
   const [seconds, setSeconds] = useState(0)
   const pounds = data?.settings?.weight_unit === 'lb'
+  const weightFactor = pounds ? 2.2046226218 : 1
   const [now] = useState(() => new Date())
   const days = weekDates(week, now)
   const first = dateKey(days[0])
@@ -86,6 +99,8 @@ export function FitnessWorkspace() {
   if (!session.user.hasProfile) return <Navigate to="/profile/setup" replace />
 
   async function save(action: () => PromiseLike<{ error: unknown }>, onSaved?: () => void) {
+    if (saveInFlight.current) return
+    saveInFlight.current = true
     setPending(true)
     setActionError('')
     try {
@@ -94,7 +109,7 @@ export function FitnessWorkspace() {
       setRevision((value) => value + 1)
       onSaved?.()
     } catch { setActionError('The change could not be saved. Check your connection or sign in again.') }
-    finally { setPending(false) }
+    finally { saveInFlight.current = false; setPending(false) }
   }
 
   function form(event: FormEvent<HTMLFormElement>) {
@@ -224,8 +239,8 @@ export function FitnessWorkspace() {
         {pathname === '/progress' && <div id="progress" className="space-y-4"><Panel title="Progress and measurements">
           <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => {
             const input = form(event)
-            void save(() => db.from('fitness_progress').upsert({ user_id: session.user.id, measured_on: String(input.get('date')), weight_kg: Number(input.get('weight')) / (pounds ? 2.2046226218 : 1), waist_cm: input.get('waist') ? Number(input.get('waist')) : null }, { onConflict: 'user_id,measured_on' }))
-          }}><label>Date <input className={field} name="date" type="date" defaultValue={today} required /></label><label>Body weight ({pounds ? 'lb' : 'kg'}) <input className={field} name="weight" type="number" min={pounds ? 55.12 : 25} max={pounds ? 771.61 : 350} step="any" required /></label><label>Waist (cm) <input className={field} name="waist" type="number" min="30" max="300" step="any" /></label><button className={button} disabled={pending}>Save measurement</button></form>
+            void save(() => db.from('fitness_progress').upsert({ user_id: session.user.id, measured_on: String(input.get('date')), weight_kg: Math.min(350, Math.max(25, Number(input.get('weight')) / weightFactor)), waist_cm: input.get('waist') ? Number(input.get('waist')) : null }, { onConflict: 'user_id,measured_on' }))
+          }}><label>Date <input className={field} name="date" type="date" defaultValue={today} required /></label><label>Body weight ({pounds ? 'lb' : 'kg'}) <input className={field} name="weight" type="number" inputMode="decimal" min={25 * weightFactor} max={350 * weightFactor} step="any" required /></label><label>Waist (cm) <input className={field} name="waist" type="number" min="30" max="300" step="any" /></label><button className={button} disabled={pending}>Save measurement</button></form>
           {!history.length && <p>No measurements saved yet.</p>}
           <ul className="space-y-2">{history.map((entry) => <li key={entry.id} className="flex flex-wrap items-center gap-3"><span>{entry.measured_on}</span><meter aria-label={`Weight on ${entry.measured_on}`} min={0} max={Math.max(...history.map((value) => value.weight_kg))} value={entry.weight_kg} /><span>{(entry.weight_kg * (pounds ? 2.2046226218 : 1)).toFixed(1)} {pounds ? 'lb' : 'kg'}{entry.waist_cm ? ` · ${entry.waist_cm} cm waist` : ''}</span></li>)}</ul>
         </Panel><TrainingProgress logs={logs} pounds={pounds} today={now} /></div>}
