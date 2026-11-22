@@ -3,6 +3,7 @@ import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { Activity, LogOut, ShieldCheck } from 'lucide-react'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/AuthContext'
+import { LandingPage } from './pages/LandingPage'
 import { RequireAuth } from './auth/RequireAuth'
 import { apiUrl } from './auth/api'
 import { fullNameForUser } from './auth/session'
@@ -92,6 +93,16 @@ function HomePage() {
   )
 }
 
+function StartPage() {
+  const { session, authReady } = useAuth()
+  if (!authReady) return <main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600" role="status">Restoring your session…</main>
+  return session ? <HomePage /> : <LandingPage />
+}
+
+function NotFoundPage() {
+  return <main className="mx-auto max-w-xl px-5 py-16"><h1 className="text-3xl font-semibold">Page not found</h1><Link className="mt-5 inline-flex min-h-11 items-center text-emerald-900 underline" to="/">Back to MeFit</Link></main>
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -106,9 +117,9 @@ function AppRoutes() {
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/contribute" element={<ContributorPage />} />
-        <Route path="/" element={<HomePage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/" element={<StartPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }
