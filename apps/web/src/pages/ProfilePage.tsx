@@ -10,9 +10,11 @@ const profileSaveTimeoutMs = 60_000
 type Evaluation = { score: number; fitness_level: string; suitability_warning: string | null; note: string }
 
 export function ProfilePage() {
-  const { session, setSession } = useAuth()
+  const { session, setSession, logout } = useAuth()
   const navigate = useNavigate()
   const [pending, setPending] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(Boolean(session?.user.hasProfile))
@@ -35,7 +37,7 @@ export function ProfilePage() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!session) return
+    if (!session || signingOut) return
     setPending(true)
     setError(null)
     let fitnessDetailsSaved = false
@@ -88,6 +90,17 @@ export function ProfilePage() {
     } finally { setPending(false) }
   }
 
+  async function leaveSetup() {
+    setSignOutError(false)
+    setSigningOut(true)
+    try {
+      await logout()
+    } catch {
+      setSignOutError(true)
+      setSigningOut(false)
+    }
+  }
+
   async function deleteProfile() {
     if (!session || !window.confirm('Delete your fitness profile? Your saved goals and completion history will stay in your account.')) return
     setPending(true); setError(null)
@@ -107,7 +120,14 @@ export function ProfilePage() {
   return (
     <main className="min-h-screen bg-[#f3f7f5] px-4 py-8 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-3xl">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 hover:underline"><ArrowLeft size={16} />Back to MeFit</Link>
+        {session?.user.hasProfile ? (
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 hover:underline"><ArrowLeft size={16} />Back to MeFit</Link>
+        ) : (
+          <>
+            <button type="button" disabled={pending || signingOut} onClick={() => void leaveSetup()} className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 hover:underline disabled:opacity-70"><ArrowLeft size={16} />{signingOut ? 'Signing out…' : 'Sign out'}</button>
+            {signOutError && <p role="alert" className="mt-2 text-sm text-rose-800">Could not sign out. Please try again.</p>}
+          </>
+        )}
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
           <div className="flex items-start gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-900"><Activity /></span><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Your starting point</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Set up your fitness profile</h1><p className="mt-2 leading-6 text-slate-600">Tell us what fits your week. You can update these details later.</p></div></div>
           {evaluation ? <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5" role="status"><div className="flex items-center gap-2 font-semibold text-emerald-950"><CheckCircle2 size={19} />Profile saved · {evaluation.fitness_level.toLowerCase()}</div><p className="mt-2 text-sm leading-6 text-emerald-900">Readiness score {evaluation.score}/100. {evaluation.note}</p>{evaluation.suitability_warning && <p className="mt-2 text-sm leading-6 text-amber-900">{evaluation.suitability_warning}</p>}<button type="button" onClick={() => navigate('/', { replace: true })} className="mt-4 min-h-11 rounded-xl bg-emerald-900 px-5 font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Request Contributions</button></div> : loadingProfile ? <div className="mt-8 rounded-xl bg-slate-50 p-6 text-sm text-slate-600" role="status">Loading your saved profile…</div> : <form onSubmit={(event) => void save(event)} className="mt-8 space-y-8">
