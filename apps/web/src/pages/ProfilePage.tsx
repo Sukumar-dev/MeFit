@@ -157,7 +157,7 @@ export function ProfilePage() {
 
   const fieldClass = 'mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10'
   const labelClass = 'block text-sm font-medium text-slate-700'
-  const showContributorRequest = session?.user.hasProfile && !session.user.roles.some((role) => role === 'CONTRIBUTOR' || role === 'ADMIN')
+  const showContributorRequest = !supabaseId && session?.user.hasProfile && !session.user.roles.some((role) => role === 'CONTRIBUTOR' || role === 'ADMIN')
 
   return (
     <main className="min-h-screen bg-[#f3f7f5] px-4 py-8 text-slate-900 sm:px-6">

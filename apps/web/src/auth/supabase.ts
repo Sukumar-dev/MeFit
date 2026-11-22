@@ -29,9 +29,21 @@ type ProfileRow = {
   updated_at: string
 }
 
+type Owned = { id: string; user_id: string }
+type Table<Row extends Record<string, unknown>> = {
+  Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: []
+}
+
 type Database = {
   public: {
-    Tables: { profiles: { Row: ProfileRow; Insert: Partial<ProfileRow> & { id: string }; Update: Partial<ProfileRow>; Relationships: [] } }
+    Tables: {
+      profiles: Table<ProfileRow>
+      weekly_workouts: Table<Owned & { workout_date: string; title: string; completed: boolean }>
+      fitness_exercises: Table<{ name: string; muscle_group: string; equipment: string }>
+      workout_logs: Table<Owned & { exercise: string; performed_on: string; sets: number; reps: number; weight_kg: number; duration_seconds: number }>
+      fitness_settings: Table<{ user_id: string; weight_unit: 'kg' | 'lb' }>
+      fitness_progress: Table<Owned & { measured_on: string; weight_kg: number; waist_cm: number | null }>
+    }
     Views: Record<never, never>
     Functions: Record<never, never>
   }
