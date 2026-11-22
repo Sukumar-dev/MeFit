@@ -2,9 +2,6 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/AuthContext'
-import { ThemePreference } from './components/ThemePreference'
-import { EmptyState } from './components/FitnessDesign'
-import { ImageCredits } from './pages/ImageCredits'
 import { LandingPage } from './pages/LandingPage'
 import { RequireAuth } from './auth/RequireAuth'
 
@@ -14,23 +11,20 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({
 
 const FitnessWorkspace = lazy(() => import('./pages/FitnessWorkspace').then((module) => ({ default: module.FitnessWorkspace })))
 
-const ExerciseLibraryPage = lazy(() => import('./pages/ExerciseLibraryPage').then(({ ExerciseLibraryPage }) => ({ default: ExerciseLibraryPage })))
-
 function StartPage() {
   const { session, authReady } = useAuth()
-  if (!authReady) return <main className="grid min-h-screen place-items-center mf-page text-sm" role="status">Restoring your session…</main>
+  if (!authReady) return <main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600" role="status">Restoring your session…</main>
   if (!session) return <LandingPage />
-  return <Navigate to="/home" replace />
+  return <FitnessWorkspace />
 }
 
 function NotFoundPage() {
-  return <main className="mf-page min-h-screen px-5 py-16"><h1 className="text-center text-3xl font-semibold">Page not found</h1><EmptyState title="This page is unavailable"><Link className="mf-button mf-button-primary" to="/">Back to MeFit</Link></EmptyState></main>
+  return <main className="mx-auto max-w-xl px-5 py-16"><h1 className="text-3xl font-semibold">Page not found</h1><Link className="mt-5 inline-flex min-h-11 items-center text-emerald-900 underline" to="/">Back to MeFit</Link></main>
 }
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/credits" element={<ImageCredits />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage initialFlow="register" />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -38,17 +32,17 @@ function AppRoutes() {
       <Route path="/auth/link/callback" element={<Navigate to="/login" replace />} />
       <Route element={<RequireAuth />}>
         <Route path="/profile/setup" element={<ProfilePage />} />
-        <Route path="/home" element={<FitnessWorkspace />} />
-        <Route path="/plan" element={<FitnessWorkspace />} />
-        <Route path="/log" element={<FitnessWorkspace />} />
-        <Route path="/progress" element={<FitnessWorkspace />} />
-        <Route path="/profile" element={<FitnessWorkspace />} />
-        <Route path="/exercises" element={<ExerciseLibraryPage />} />
-        <Route path="/catalog" element={<Navigate to="/exercises" replace />} />
-        <Route path="/goals" element={<Navigate to="/plan" replace />} />
-        <Route path="/admin" element={<Navigate to="/profile" replace />} />
-        <Route path="/contribute" element={<Navigate to="/profile" replace />} />
+        <Route path="/catalog" element={<Navigate to="/#library" replace />} />
+        <Route path="/goals" element={<Navigate to="/#planner" replace />} />
+        <Route path="/admin" element={<Navigate to="/#settings" replace />} />
+        <Route path="/contribute" element={<Navigate to="/#settings" replace />} />
       </Route>
+      <Route path="/home" element={<Navigate to="/" replace />} />
+      <Route path="/plan" element={<Navigate to="/#planner" replace />} />
+      <Route path="/exercises" element={<Navigate to="/#library" replace />} />
+      <Route path="/log" element={<Navigate to="/#logging" replace />} />
+      <Route path="/progress" element={<Navigate to="/#progress" replace />} />
+      <Route path="/profile" element={<Navigate to="/#settings" replace />} />
       <Route path="/" element={<StartPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
@@ -56,7 +50,7 @@ function AppRoutes() {
 }
 
 function App() {
-  return <BrowserRouter><AuthProvider><ThemePreference /><Suspense fallback={<main className="grid min-h-screen place-items-center mf-page text-sm">Loading MeFit…</main>}><AppRoutes /></Suspense></AuthProvider></BrowserRouter>
+  return <BrowserRouter><AuthProvider><Suspense fallback={<main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600">Loading MeFit…</main>}><AppRoutes /></Suspense></AuthProvider></BrowserRouter>
 }
 
 export default App

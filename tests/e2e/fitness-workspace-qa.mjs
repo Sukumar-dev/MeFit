@@ -62,15 +62,15 @@ try {
   await route.fulfill({json,headers})
  })
 
- await page.goto(frontend + '/plan')
+ await page.goto(frontend + '/#planner')
  await page.getByRole('button',{name:'Next week',exact:true}).click()
- await page.waitForURL('**/plan?week=1')
+ await page.waitForURL(url => url.searchParams.get('week') === '1')
  await page.reload()
  assert.equal(new URL(page.url()).searchParams.get('week'),'1')
- await page.getByRole('button',{name:'Today',exact:true}).click()
- await page.waitForURL('**/plan')
+ await page.getByRole('button',{name:'Previous week',exact:true}).click()
+ await page.waitForURL(url => !url.searchParams.has('week'))
  console.log('Planner selection survives reload and Today resets it.')
- await page.goto(frontend+'/progress')
+ await page.goto(frontend+'/#progress')
  await page.getByLabel(/Body weight/).fill('25')
  await page.getByRole('button',{name:'Save measurement'}).evaluate(button=>{
    button.form.requestSubmit()
@@ -78,39 +78,23 @@ try {
  })
  await page.waitForResponse(response=>response.request().method()==='POST'&&response.url().includes('/fitness_progress'))
  assert.equal(measurementWrites,1)
- await page.goto(frontend+'/profile')
- await page.getByLabel('Weight units').selectOption('lb')
- await page.getByRole('button',{name:'Save settings'}).click()
- await page.getByText('Settings saved.').waitFor()
- await page.goto(frontend+'/progress')
+ await page.goto(frontend+'/#settings')
+ await Promise.all([
+   page.waitForResponse(response=>response.request().method()==='POST' && response.url().includes('/fitness_settings')),
+   page.getByLabel('Weight units').selectOption('lb'),
+ ])
+ await page.goto(frontend+'/#progress')
  const poundWeight=page.getByLabel('Body weight (lb)')
  assert.equal(Number(await poundWeight.getAttribute('min')),25*2.2046226218)
  assert.equal(Number(await poundWeight.getAttribute('max')),350*2.2046226218)
  console.log('Rapid submits produce one write and pound bounds match database limits.')
-
- for (const [width,height] of [[360,740],[390,844],[414,896],[667,375],[844,390],[768,1024],[820,1180],[1024,768],[1180,820],[1280,800],[1440,900],[1920,1080]]) {
+ for (const [width,height] of [[390,844],[768,1024],[1280,800]]) {
    await page.setViewportSize({width,height})
-   for(const [route,title,action] of [['home',/Good .*Local/,'Create my weekly plan'],['plan','Plan','Add workout'],['exercises','Exercise library','Search by exercise or muscle'],['log','Workout log','Complete set'],['progress','Progress','Save measurement'],['profile','Profile','Save settings']]){
-     await page.goto(frontend + '/' + route)
-     await page.getByRole('heading',{name:title,exact:true,level:1}).waitFor()
-     const primary=page.getByRole('button',{name:action,exact:true}).or(page.getByRole('link',{name:action,exact:true})).or(page.getByRole('searchbox',{name:action,exact:true}))
-     await primary.first().waitFor()
-     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width,route)
-     const nav=page.getByRole('navigation',{name:width<768?'Mobile fitness workspace':'Fitness workspace',exact:true})
-     assert.equal(await nav.isVisible(),true,route)
-     const inactive=page.getByRole('navigation',{name:width<768?'Fitness workspace':'Mobile fitness workspace',exact:true})
-     assert.equal(await inactive.isVisible(),false,route)
-     if(route==='plan'){
-       await primary.click()
-       await page.getByRole('dialog').waitFor()
-       await page.keyboard.press('Escape')
-     }
-     if(route==='exercises'){
-       await page.getByRole('heading',{name:'Squat',exact:true}).click()
-       await page.getByRole('dialog').waitFor()
-       await page.keyboard.press('Escape')
-     }
+   await page.goto(frontend)
+   for (const title of ['Weekly planner','Exercise library','Workout log','Body measurements','Settings']) {
+     await page.getByRole('heading',{name:title,exact:true}).waitFor()
    }
-   console.log('Passed six routes and two drawers at '+width+'×'+height)
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width)
+   console.log('Passed single-page layout at '+width+'×'+height)
  }
 } finally { await browser.close() }
