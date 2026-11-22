@@ -26,7 +26,7 @@ export function getSupabaseClient() {
 }
 
 export function toAppSession(session: SupabaseSession, previous?: AppSession | null): AppSession {
-  const sameAccount = previous?.authProvider === 'supabase' && readClaims(previous.accessToken)?.sub === session.user.id
+  const sameAccount = previous && matchesSupabaseAccount(previous, session)
   const metadata = session.user.user_metadata ?? {}
   const firstName = typeof metadata.first_name === 'string' ? metadata.first_name : undefined
   const lastName = typeof metadata.last_name === 'string' ? metadata.last_name : undefined
@@ -140,11 +140,35 @@ export async function provisionApiUser(session: SupabaseSession): Promise<AppSes
   }
 }
 
+export async function confirmSupabaseSignup(tokenHash: string): Promise<void> {
+  const { data, error } = await getSupabaseClient().auth.verifyOtp({ token_hash: tokenHash, type: 'email' })
+  if (error || !data.session) throw new Error('This confirmation link is invalid or expired. Request a fresh email, or sign in if your email is already confirmed.')
+}
+
+export function matchesSupabaseAccount(previous: AppSession, session: SupabaseSession): boolean {
+  return previous.authProvider === 'supabase' && readClaims(previous.accessToken)?.sub === session.user.id
+}
+
+export async function getProfileSession(previous: AppSession, refresh = false): Promise<AppSession> {
+  if (previous.authProvider !== 'supabase') return previous
+  const auth = getSupabaseClient().auth
+  const { data, error } = refresh ? await auth.refreshSession() : await auth.getSession()
+  if (error || !data.session || !matchesSupabaseAccount(previous, data.session)) {
+    throw new Error('Your sign-in session ended. Sign in again to save your profile.')
+  }
+  const session = toAppSession(data.session, previous)
+  if (session.assuranceLevel !== 'aal2') throw new Error('Complete two-step verification again to save your profile.')
+  return session
+}
+
 export async function completeSupabaseCallback(): Promise<SupabaseSession> {
   const auth = getSupabaseClient().auth
   const code = new URLSearchParams(window.location.search).get('code')
   if (code) {
     const { error } = await auth.exchangeCodeForSession(code)
+    if (error?.name === 'AuthPKCECodeVerifierMissingError') {
+      throw new Error('This older confirmation link requires the browser you registered with. If your email is already confirmed, sign in to continue.')
+    }
     if (error) throw error
   }
   const { data, error } = await auth.getSession()

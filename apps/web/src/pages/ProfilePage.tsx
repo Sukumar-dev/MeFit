@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Activity, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { apiUrl } from '../auth/api'
-import { getSupabaseClient, toAppSession, useSupabaseAuth } from '../auth/supabase'
+import { getProfileSession, useSupabaseAuth } from '../auth/supabase'
 
 const profileSaveTimeoutMs = 60_000
 
@@ -40,18 +40,21 @@ export function ProfilePage() {
     setError(null)
     let fitnessDetailsSaved = false
     try {
-      let activeSession = session
-      if (session.authProvider === 'supabase') {
-        const { data, error: sessionError } = await getSupabaseClient().auth.getSession()
-        if (sessionError || !data.session) throw new Error('Your sign-in session expired. Sign in again to save your profile.')
-        activeSession = toAppSession(data.session, session)
-        if (activeSession.assuranceLevel !== 'aal2' || activeSession.user.id !== session.user.id) {
-          throw new Error('Sign in and complete two-step verification again to save your profile.')
-        }
+      let activeSession = await getProfileSession(session)
+      async function sendProfileRequest(path: string, options: RequestInit) {
+        const send = () => fetch(`${apiUrl.replace(/\/$/, '')}${path}`, {
+          ...options,
+          headers: { Authorization: `Bearer ${activeSession.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+          signal: AbortSignal.timeout(profileSaveTimeoutMs),
+        })
+        const response = await send()
+        if (response.status !== 401 || activeSession.authProvider !== 'supabase') return response
+        // Authentication middleware rejects the write before the route can run.
+        activeSession = await getProfileSession(activeSession, true)
+        return send()
       }
-      const response = await fetch(`${apiUrl.replace(/\/$/, '')}/profile`, {
+      const response = await sendProfileRequest('/profile', {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${activeSession.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           timezone: form.timezone,
           profile_image_url: form.profile_image_url || null,
@@ -62,13 +65,15 @@ export function ProfilePage() {
           readiness: { days_available: Number(form.days_available), minutes_per_session: Number(form.minutes_per_session), activity_level: form.activity_level, experience: form.experience, limitations: form.limitations },
           ...(form.line1 && form.city && form.country ? { address: { line1: form.line1, city: form.city, country: form.country } } : {}),
         }),
-        signal: AbortSignal.timeout(profileSaveTimeoutMs),
       })
       const result = await response.json() as { evaluation?: Evaluation; error?: { message?: string } }
       if (response.status === 401) throw new Error('The API could not verify your sign-in. Sign in again. If this persists, contact MeFit support.')
       if (!response.ok || !result.evaluation) throw new Error(result.error?.message ?? 'Your profile could not be saved. Please try again.')
       fitnessDetailsSaved = true
-      const nameResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/user/${session.user.id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${activeSession.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ display_name: form.display_name }), signal: AbortSignal.timeout(profileSaveTimeoutMs) })
+      const nameResponse = await sendProfileRequest(`/user/${activeSession.user.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ display_name: form.display_name }),
+      })
       if (!nameResponse.ok) throw new Error('Fitness details were saved, but your display name could not be updated.')
       setEvaluation(result.evaluation)
       setSession({ ...activeSession, user: { ...activeSession.user, displayName: form.display_name, hasProfile: true } })

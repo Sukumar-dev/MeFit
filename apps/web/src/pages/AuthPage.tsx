@@ -101,7 +101,7 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
         if (data.session) {
           navigate('/auth/callback', { replace: true })
         } else {
-          setNotice('Check your email for a confirmation link. Open it in this browser to set up your authenticator.')
+          setNotice('Check your email for a confirmation link. Open the link to verify your address and set up your authenticator.')
         }
       }
     } catch (cause) {
