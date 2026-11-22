@@ -15,6 +15,7 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
   const [notice, setNotice] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [resetMode, setResetMode] = useState(false)
   const [mfaChallenge, setMfaChallenge] = useState<SupabaseMfaChallenge | null>(null)
@@ -172,11 +173,11 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f3f7f5] px-4 py-10 text-slate-900">
-      <section className="grid w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-xl shadow-emerald-950/10 md:grid-cols-[1.05fr_0.95fr]">
-        <div className="relative hidden min-h-[620px] flex-col justify-between overflow-hidden bg-emerald-950 p-12 text-white md:flex">
-          <div className="absolute -right-20 -top-16 h-80 w-80 rounded-full bg-emerald-500/30 blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-lime-300/20 blur-3xl" />
+    <main className="mf-page flex min-h-screen items-center justify-center px-4 py-8">
+      <section className="mf-card grid w-full max-w-5xl overflow-hidden md:grid-cols-[1.05fr_0.95fr]">
+        <div className="relative isolate hidden min-h-[620px] flex-col justify-between overflow-hidden bg-emerald-950 p-12 text-white md:flex">
+          <img src="/images/editorial/running.webp" alt="Athlete training with suspension straps" width={1600} height={1067} loading="lazy" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-emerald-950 via-emerald-950/85 to-emerald-950/60" />
           <div className="relative flex items-center gap-3 text-xl font-semibold"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-lime-300 text-emerald-950"><Activity size={21} /></span>MeFit</div>
           <div className="relative max-w-md">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-lime-200">Small steps. Strong weeks.</p>
@@ -186,20 +187,20 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
           <p className="relative flex items-center gap-2 text-sm text-emerald-50/80"><ShieldCheck size={17} />Your account is protected with two-step verification.</p>
         </div>
 
-        <div className="flex min-h-[620px] flex-col justify-center px-7 py-12 sm:px-12 lg:px-16">
+        <div className="flex flex-col justify-center px-5 py-8 sm:px-12 md:min-h-[620px] lg:px-16">
           <div className="mb-10 flex items-center gap-3 text-lg font-semibold md:hidden"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-900 text-lime-200"><Activity size={21} /></span>MeFit</div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">{flow === 'login' ? 'Welcome back' : 'Start your routine'}</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--mf-green)]">{flow === 'login' ? 'Welcome back' : 'Start your routine'}</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{resetMode ? 'Reset your password' : flow === 'login' ? 'Sign in to MeFit' : 'Create your MeFit account'}</h2>
-          <p className="mt-3 leading-7 text-slate-600">{resetMode ? 'We’ll email you a secure password reset link.' : flow === 'login' ? 'Continue to your weekly plan and progress.' : 'Set up your account, then build a plan that works for you.'}</p>
+          <p className="mt-3 leading-7 mf-muted">{resetMode ? 'We’ll email you a secure password reset link.' : flow === 'login' ? 'Continue to your weekly plan and progress.' : 'Set up your account, then build a plan that works for you.'}</p>
 
           {!supabaseAuthConfigured && useSupabaseAuth && <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900" role="alert">Supabase sign-in is not configured yet. Please contact the site administrator.</div>}
-          {error && <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-800" role="alert">{error}</div>}
+          {error && !mfaChallenge && <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-800" role="alert">{error}</div>}
           {notice && <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900" role="status">{notice}</div>}
 
           {useSupabaseAuth && mfaChallenge ? <MfaStepForm challenge={mfaChallenge} busy={pending} error={error} onVerify={(code) => void verifySupabaseMfa(code)} /> : useSupabaseAuth ? <form onSubmit={(event) => { if (resetMode) { event.preventDefault(); void sendPasswordReset() } else void submitSupabaseAuth(event) }} className="mt-8 space-y-4">
-            {flow === 'register' && !resetMode && <label className="block text-sm font-medium text-slate-700">Name<input autoComplete="name" required maxLength={120} value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 px-4 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20" /></label>}
-            <label className="block text-sm font-medium text-slate-700">Email<input autoComplete="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 px-4 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20" /></label>
-            {!resetMode && <label className="block text-sm font-medium text-slate-700">Password<input autoComplete={flow === 'login' ? 'current-password' : 'new-password'} type="password" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 px-4 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20" /></label>}
+            {flow === 'register' && !resetMode && <label className="block text-sm font-medium text-[var(--mf-text)]">Name<input autoComplete="name" required maxLength={120} value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="mf-field mt-1.5 w-full" /></label>}
+            <label className="block text-sm font-medium text-[var(--mf-text)]">Email<input autoComplete="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="mf-field mt-1.5 w-full" /></label>
+            {!resetMode && <label className="block text-sm font-medium text-[var(--mf-text)]">Password<input autoComplete={flow === 'login' ? 'current-password' : 'new-password'} type={showPassword ? 'text' : 'password'} required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} className="mf-field mt-1.5 w-full" /><button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)} className="mf-button mf-button-ghost px-0 text-sm">{showPassword ? 'Hide password' : 'Show password'}</button></label>}
             <button type="submit" disabled={pending || !supabaseAuthConfigured} aria-busy={pending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-70">
               {pending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />}
               {pending ? 'Please wait…' : resetMode ? 'Send reset link' : flow === 'login' ? 'Sign in' : 'Create account'}
@@ -224,11 +225,11 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
             </> : <p>Checking whether the sign-in server is ready…</p>}
             <button type="button" onClick={cancelWarmup} className="mt-2 font-semibold text-emerald-900 underline underline-offset-2">Cancel</button>
           </div>}
-          <p className="mt-4 text-center text-xs leading-5 text-slate-500">Sign-in and two-step verification are securely handled by the identity provider.</p>
+          <p className="mt-4 text-center text-xs leading-5 mf-muted">Sign-in and two-step verification are securely handled by the identity provider.</p>
 
-          <div className="mt-8 border-t border-slate-200 pt-6 text-center text-sm text-slate-600">
+          <div className="mt-8 border-t border-slate-200 pt-6 text-center text-sm mf-muted">
             {flow === 'login' ? 'New to MeFit?' : 'Already have an account?'}{' '}
-            <Link to={flow === 'login' ? '/register' : '/login'} aria-disabled={pending} tabIndex={pending ? -1 : undefined} onClick={(event) => { if (pending) { event.preventDefault(); return } setFlow(flow === 'login' ? 'register' : 'login'); setResetMode(false); setError(null); setNotice(null) }} className="font-semibold text-emerald-800 underline-offset-4 hover:underline">
+            <Link to={flow === 'login' ? '/register' : '/login'} aria-disabled={pending} tabIndex={pending ? -1 : undefined} onClick={(event) => { if (pending) { event.preventDefault(); return } setFlow(flow === 'login' ? 'register' : 'login'); setResetMode(false); setError(null); setNotice(null) }} className="font-semibold text-[var(--mf-green)] underline-offset-4 hover:underline">
               {flow === 'login' ? 'Create an account' : 'Sign in'}
             </Link>
           </div>

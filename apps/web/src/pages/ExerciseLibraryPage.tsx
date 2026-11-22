@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Activity, ArrowLeft, ArrowRight, Dumbbell, Footprints, Heart, Search, SlidersHorizontal, X } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { EmptyState } from '../components/FitnessDesign'
 import { useAuth } from '../auth/AuthContext'
 import { getSupabaseClient } from '../auth/supabase'
 import { bodyAreas, equipmentOptions, levels, movements, filterExercises, type Exercise } from './exerciseFilters'
@@ -153,7 +154,7 @@ export function ExerciseLibraryPage() {
       {!selected && notice && <p role="status">{notice}</p>}
       {loadError ? <div role="alert"><p>Could not load the exercise library.</p><button className={action} onClick={() => { setLoadError(false); setAttempt((value) => value + 1) }}>Try again</button></div> :
         !rows ? <div role="status"><span className="sr-only">Loading exercises</span><div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <div key={index} className="aspect-square animate-pulse rounded-2xl bg-teal-100 motion-reduce:animate-none dark:bg-slate-800" />)}</div></div> :
-          !results.length ? <section className="rounded-2xl border border-dashed p-8 text-center"><p>{favoriteTab && !favorites.size ? 'No favorites yet.' : 'No exercises found.'}</p><button className="min-h-11 underline" onClick={favoriteTab && !favorites.size ? () => change('tab', '') : clear}>{favoriteTab && !favorites.size ? 'Browse exercises' : 'Clear filters'}</button></section> :
+          !results.length ? <section className="rounded-2xl border border-dashed p-8 text-center"><EmptyState title={favoriteTab && !favorites.size ? 'No favorites yet.' : 'No exercises found.'}><button className="min-h-11 underline" onClick={favoriteTab && !favorites.size ? () => change('tab', '') : clear}>{favoriteTab && !favorites.size ? 'Browse exercises' : 'Clear filters'}</button></EmptyState></section> :
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{results.slice(0, limit).map((row) => <li key={row.id} className="relative rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
               <button className="block w-full rounded-xl text-left" onClick={() => { setNotice(''); setSelected(row) }}><ExerciseImage row={row} /><h2 className="mt-3 pr-2 font-semibold">{row.name}</h2></button>
               <div className="mt-2"><Badges row={row} /></div>

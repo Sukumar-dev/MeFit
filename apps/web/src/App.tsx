@@ -2,6 +2,9 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/AuthContext'
+import { ThemePreference } from './components/ThemePreference'
+import { EmptyState } from './components/FitnessDesign'
+import { ImageCredits } from './pages/ImageCredits'
 import { LandingPage } from './pages/LandingPage'
 import { RequireAuth } from './auth/RequireAuth'
 
@@ -15,18 +18,19 @@ const ExerciseLibraryPage = lazy(() => import('./pages/ExerciseLibraryPage').the
 
 function StartPage() {
   const { session, authReady } = useAuth()
-  if (!authReady) return <main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600" role="status">Restoring your session…</main>
+  if (!authReady) return <main className="grid min-h-screen place-items-center mf-page text-sm" role="status">Restoring your session…</main>
   if (!session) return <LandingPage />
   return <FitnessWorkspace />
 }
 
 function NotFoundPage() {
-  return <main className="mx-auto max-w-xl px-5 py-16"><h1 className="text-3xl font-semibold">Page not found</h1><Link className="mt-5 inline-flex min-h-11 items-center text-emerald-900 underline" to="/">Back to MeFit</Link></main>
+  return <main className="mf-page min-h-screen px-5 py-16"><h1 className="text-center text-3xl font-semibold">Page not found</h1><EmptyState title="This page is unavailable"><Link className="mf-button mf-button-primary" to="/">Back to MeFit</Link></EmptyState></main>
 }
 
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/credits" element={<ImageCredits />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage initialFlow="register" />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -46,7 +50,7 @@ function AppRoutes() {
 }
 
 function App() {
-  return <BrowserRouter><AuthProvider><Suspense fallback={<main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600">Loading MeFit…</main>}><AppRoutes /></Suspense></AuthProvider></BrowserRouter>
+  return <BrowserRouter><AuthProvider><ThemePreference /><Suspense fallback={<main className="grid min-h-screen place-items-center mf-page text-sm">Loading MeFit…</main>}><AppRoutes /></Suspense></AuthProvider></BrowserRouter>
 }
 
 export default App

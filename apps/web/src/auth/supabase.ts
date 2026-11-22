@@ -39,7 +39,7 @@ type Database = {
   public: {
     Tables: {
       profiles: Table<ProfileRow>
-      weekly_workouts: Table<Owned & { workout_date: string; title: string; completed: boolean }>
+      weekly_workouts: Table<Owned & { workout_date: string; title: string; completed: boolean; exercise_name?: string | null; target_sets?: number | null; target_reps?: number | null; target_minutes?: number | null }>
       exercise_library: Table<Exercise>
       user_favorites: Table<{ user_id: string; exercise_id: string }>
       fitness_exercises: Table<{ name: string; muscle_group: string; equipment: string }>
