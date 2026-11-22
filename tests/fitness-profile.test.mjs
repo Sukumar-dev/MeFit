@@ -40,3 +40,10 @@ test('SEC-02 rejects identity overrides and non-HTTPS avatars before issuing a d
     assert.equal(response.request, undefined)
   }
 })
+
+test('SEC-02 passes punctuation and harmless markup as structured profile data', async () => {
+  const profile = { ...valid, display_name: "O'Connor <strong>Training</strong>" }
+  const response = await call({ method: 'PUT', body: profile })
+  assert.equal(response.code, 200)
+  assert.deepEqual(response.request, [subject, 'test', profile])
+})

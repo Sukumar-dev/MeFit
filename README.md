@@ -87,3 +87,12 @@ Never commit `.env`, access tokens, passwords, private keys, production certific
 ## Team and participants
 
 Fill in team member names, participant IDs, and responsibilities before submission.
+
+## SRS evidence and operating guides
+
+- [SRS compliance](docs/SRS_COMPLIANCE.md)
+- [User manual](docs/USER_MANUAL.md) and [PDF](docs/USER_MANUAL.pdf)
+- [REST API candidate](docs/API.md) and [OpenAPI](docs/openapi.yaml)
+- [Production ERD](docs/assets/production-erd.svg)
+- [Backup and restore](docs/BACKUP_RESTORE.md)
+- [Presentation slides](docs/MEFIT_PRESENTATION.pptx) and [outline](docs/PRESENTATION_OUTLINE.md)

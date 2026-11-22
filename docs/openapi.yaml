@@ -1,0 +1,1987 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MeFit REST candidate",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "https://mefit-fitness-planner-efpfth6x5-sukumar9.vercel.app"
+    }
+  ],
+  "paths": {
+    "/fitness-api/health": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: public. Authenticated hosted response semantics have not been fully verified.",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          }
+        }
+      }
+    },
+    "/fitness-api/user": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "303": {
+            "description": "Read resource",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Create or execute resource action",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/user/{id}": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove or archive per resource policy",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Remove or archive per resource policy"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/user/{id}/update_password": {
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Create or execute resource action"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fitness-api/profile": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Create or execute resource action"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove or archive per resource policy",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Remove or archive per resource policy"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/goal": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Create or execute resource action",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fitness-api/goal/current": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/goal/{id}": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove or archive per resource policy",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Remove or archive per resource policy"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/goal/{id}/status": {
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fitness-api/goal/{id}/workouts/{workout}/complete": {
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "workout",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Create or execute resource action"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/program": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Create or execute resource action",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fitness-api/programs": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/program/{id}": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove or archive per resource policy",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Remove or archive per resource policy"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/workout": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Create or execute resource action",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fitness-api/workouts": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/workout/{id}": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove or archive per resource policy",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Remove or archive per resource policy"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/exercises": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/exercises/{id}": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/exercise": {
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Create or execute resource action",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fitness-api/exercise/{id}": {
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove or archive per resource policy",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Remove or archive per resource policy"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/contributor/content": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: contributor. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/contributor-request": {
+      "post": {
+        "summary": "Create or execute resource action",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Create or execute resource action",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: user. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/admin/contributor-requests": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: admin. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/admin/contributor-requests/{id}": {
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: admin. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fitness-api/admin/users": {
+      "get": {
+        "summary": "Read resource",
+        "description": "Candidate route. Role: admin. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Read resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        }
+      }
+    },
+    "/fitness-api/admin/user/{id}/roles": {
+      "patch": {
+        "summary": "Update resource",
+        "description": "Candidate route. Role: admin. Authenticated hosted response semantics have not been fully verified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update resource"
+          },
+          "400": {
+            "description": "Invalid input or unsupported query"
+          },
+          "401": {
+            "description": "Invalid or missing bearer token"
+          },
+          "403": {
+            "description": "MFA or authorization required"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "500": {
+            "description": "Internal error with no internal details"
+          },
+          "503": {
+            "description": "Preview backend configuration unavailable"
+          }
+        },
+        "requestBody": {
+          "description": "See the matching Express Zod schema; field-level OpenAPI coverage is pending.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

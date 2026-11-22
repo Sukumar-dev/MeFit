@@ -1,0 +1,62 @@
+name: Encrypted database backup
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mefit-database-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MEFIT_BACKUP_DATABASE_URL: ${{ secrets.MEFIT_BACKUP_DATABASE_URL }}
+      MEFIT_BACKUP_PASSPHRASE: ${{ secrets.MEFIT_BACKUP_PASSPHRASE }}
+      MEFIT_EXPECTED_PROJECT: ${{ vars.MEFIT_EXPECTED_PROJECT }}
+    steps:
+      - name: Validate target and write encrypted dump
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${MEFIT_BACKUP_DATABASE_URL:?Set the backup database secret}"
+          : "${MEFIT_BACKUP_PASSPHRASE:?Set the encryption passphrase secret}"
+          : "${MEFIT_EXPECTED_PROJECT:?Set the Supabase production project reference}"
+          python3 - <<'PY'
+          import os
+          from urllib.parse import unquote, urlsplit, parse_qs
+          uri = urlsplit(os.environ['MEFIT_BACKUP_DATABASE_URL'])
+          ref = os.environ['MEFIT_EXPECTED_PROJECT']
+          host = uri.hostname or ''
+          direct = host == f'db.{ref}.supabase.co'
+          pooler = host.endswith('.pooler.supabase.com') and unquote(uri.username or '').endswith('.' + ref)
+          if not (direct or pooler) or uri.port != 5432 or parse_qs(uri.query).get('sslmode') != ['verify-full']:
+              raise SystemExit('Use the designated project, port 5432, and sslmode=verify-full.')
+          PY
+          mkdir -p "$RUNNER_TEMP/mefit-backup"
+          cd "$RUNNER_TEMP/mefit-backup"
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          dump="mefit-${stamp}.dump.gpg"
+          printf '%s\n' "$MEFIT_BACKUP_PASSPHRASE" > "$RUNNER_TEMP/mefit-passphrase"
+          trap 'rm -f "$RUNNER_TEMP/mefit-passphrase"' EXIT
+          docker run --rm -e MEFIT_BACKUP_DATABASE_URL -e PGSSLROOTCERT=system postgres:17 \
+            sh -ec 'pg_dump --format=custom --no-owner --no-privileges "$MEFIT_BACKUP_DATABASE_URL"' \
+            | gpg --batch --pinentry-mode loopback --passphrase-file "$RUNNER_TEMP/mefit-passphrase" --symmetric --cipher-algo AES256 --output "$dump"
+          test -s "$dump"
+          gpg --batch --pinentry-mode loopback --passphrase-file "$RUNNER_TEMP/mefit-passphrase" --decrypt "$dump" \
+            | docker run --rm -i postgres:17 pg_restore --list > /dev/null
+          sha256sum "$dump" > "$dump.sha256"
+      - name: Retain encrypted archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: mefit-postgres-${{ github.run_id }}
+          path: ${{ runner.temp }}/mefit-backup/
+          retention-days: 8
+          if-no-files-found: error

@@ -24,19 +24,19 @@ Source of truth: SITER Academy, *MeFit Case-SITER*, sections 3.2–3.8. Assessed
 | API-07 | Ordered exercises and contributor writes | Partially | routes/catalog.ts, routes/contributor.ts | Admin-only writes and parallel catalog schemas | Resolve ownership and reconcile catalog IDs |
 | API-08 | Default statuses, Location, logging and sanitized errors | Partially | app.ts and routes | Contract incomplete across endpoints | Add endpoint-level response tests and correct missing metadata |
 | DB-01 | Persistent controlled database | Partially | Supabase migrations 001–012, themePreferenceState.ts | Browser PostgREST bypasses the assigned API architecture; device preferences remain local | Use scoped server data access with RLS |
-| DB-02 | Daily full backup with seven-day retention | Not met | BACKUP_RESTORE.md | No verified scheduled production backup or retention | Verify plan, configure encrypted backup and rehearse restore |
-| DB-03 | Documented database schema and ERD | Partially | DATABASE_SCHEMA.md, Prisma and Supabase migrations | Legacy documentation does not reconcile current production tables | Document both schemas and generate current ERD |
+| DB-02 | Daily full backup with seven-day retention | Not met | Supabase Free plan confirmed; encrypted daily workflow and local restore drill | No successful hosted backup run or verified retention | Configure GitHub Actions secrets and verify a retained archive with a restore drill |
+| DB-03 | Documented database schema and ERD | Partially | [Production ERD](assets/production-erd.svg) checked against live column and foreign-key metadata | Diagram covers the eight browser-facing tables and their auth parent; legacy schema documentation remains separate | Reconcile the legacy schema and record parity with the REST release |
 | SEC-01 | Bearer authentication, MFA, rate limits | Partially | auth/authorization.ts, auth/supabase.ts | No proof MFA is enforced at all data boundaries; live API and browser use different paths | Enforce AAL2 at the active server boundary and verify policy behavior |
 | SEC-02 | Safe input and output | Partially | Zod in legacy routes, React rendering | Coverage incomplete for the active data API | Validate all data at the REST boundary |
 | SEC-03 | Credentials supplied via environment variables | Partially | .env.example and Vercel configuration | Full secret exposure audit unverified | Scan repo history and shipped assets without printing credentials |
 | SEC-04 | HTTPS in production; requested security headers | Partially | Live HTTPS and HSTS, vercel.json candidate | Header rollout pending public verification | Verify HTTPS and headers on the released candidate |
 | PRF-01 | Responsive, bounded loading | Partially | Prior landing Lighthouse and UI loading states | Recent authenticated API timing and per-route audits pending | Measure the sign-in and data flows against the active API |
 | PRF-02 | Useful, non-sensitive errors | Partially | ProfilePage.tsx, FitnessWorkspace.tsx, authorization.ts | Hosted failure cases not verified | Exercise expired session, provider and server failure paths |
-| DOC-01 | Separate role manual, screenshots and requested PDF | Partially | USER_MANUAL.md, docs/assets | Older screenshots, incomplete role evidence and no PDF | Capture current deployed role screens and export manual |
-| DOC-02 | Full endpoint documentation and requested OpenAPI | Partially | API_DOCUMENTATION.md | Documentation describes legacy paths and lacks a verified current OpenAPI contract | Generate and test the active endpoint specification |
+| DOC-01 | Separate role manual, screenshots and requested PDF | Partially | [User manual](USER_MANUAL.md), [PDF](USER_MANUAL.pdf), public sign-in and registration screenshots | Signed-in screenshots and hosted walkthroughs are missing for all three roles | Capture the authenticated screens after the staging role flows pass |
+| DOC-02 | Full endpoint documentation and requested OpenAPI | Partially | [API guide](API.md), [OpenAPI](openapi.yaml), generated route inventory | Field-level contracts and authenticated response verification are incomplete | Complete schemas and validate against the active hosted API |
 | DOC-03 | README, team and complete setup | Partially | README.md, INSTALLATION.md | Instructions mix legacy and live architecture; clean setup not reverified | Document the chosen API and repeat a clean setup |
 | MISC-01 | Repository, documentation and deployment deliverables | Partially | GitHub, Vercel, docs/ | Several required deliverables and live role checks incomplete | Complete listed prerequisites |
-| MISC-02 | 30-minute presentation and defense | Partially | PRESENTATION.md, PRESENTATION_OUTLINE.md | Role demos still depend on restored functionality | Rehearse against the completed release |
+| MISC-02 | 30-minute presentation and defense | Partially | [Timed slide deck](MEFIT_PRESENTATION.pptx) | Hosted role demonstrations and full rehearsal are pending | Rehearse against the verified release |
 
 The brief’s admin area is tracked under FE-01/02/11 and API-03. Program and request endpoints are tracked under FE-05/08/11 and API-08; they are not additional numbered PDF requirements.
 
@@ -92,3 +92,14 @@ When `VITE_SRS_API_URL=/fitness-api` is configured, the candidate uses the separ
 | FE-07 | Chromium fixture check navigates into the existing illustrated catalog. | Hosted verification and explicit grouped listing remain pending. |
 
 Reproduce by running `node tests/e2e/fitness-workspace-qa.mjs` against the loopback frontend fixture. The REST candidate stays opt-in pending verification; existing production data was not migrated.
+
+## Batch 4 release evidence
+
+Production remains on the previously audited release. The 33-item matrix records **0 Met, 27 Partially, and 6 Not met**. Candidate evidence is included without treating it as live proof.
+
+- **DB-02** Supabase reports Free. The candidate GitHub Actions workflow encrypts a daily PostgreSQL dump and requests eight-day retention. A local custom-format restore into disposable PostgreSQL reproduced 16 public tables. A successful Actions run, retained production artifact and hosted restore are pending. See [backup and restore](BACKUP_RESTORE.md).
+- **DB-03** Queried production schema metadata for the eight browser-facing tables and verified their foreign keys. The [ERD](assets/production-erd.svg) covers those tables and `auth.users`.
+- **SEC-02 and PRF-02** Profile tests check identity overrides, HTTPS avatar validation, and preservation of punctuation and harmless markup as structured data. These checks do not establish end-to-end SQL parameterization or browser output handling on hosted routes. Hosted expired-session and upstream-error flows still need evidence.
+- **SEC-04 and PRF-01** Public Vercel landing returned HTTP 200 with HSTS `max-age=63072000; includeSubDomains; preload`. Direct Render health timed out after 22 seconds, so HSTS there remains unverified. The production `/api/user`, `/api/profile`, `/api/goal`, and `/api/exercises` probes each timed out at 18 seconds. Hosted authenticated API timing remains unverified. Mobile Lighthouse on the public landing scored 100/100 for performance, accessibility, best practices, and SEO, with 1.8 s LCP in one run.
+- **Verification** 50/50 REST manifest and handler checks, 38/38 frontend tests, lint and TypeScript build passed. Lint retains existing warnings. Production dependency audit found zero known vulnerabilities.
+- **Live smoke** Public landing, sign-in and registration rendered. Signed-in regular-user, contributor and administrator smoke tests remain blocked because the hosted REST preview has no verified staging database binding or dedicated accounts for those roles.
