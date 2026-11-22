@@ -18,7 +18,7 @@ export function FitnessOverview({ name, now, week, today, workouts, streak }: {
   return <>
     <header className="flex flex-wrap items-end justify-between gap-4 py-2">
       <div><p className="mf-muted text-sm font-semibold">{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-5xl">{greeting}, {name.trim().split(/\s+/)[0] || 'there'}</h1></div>
-      <Badge warm><Flame aria-hidden size={16} /> {streak}-day streak</Badge>
+      <Badge warm><Flame aria-hidden size={16} /> Streak: {streak} {streak === 1 ? 'day' : 'days'}</Badge>
     </header>
     <div className="grid gap-4 md:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       {todayWorkout ? <section className="mf-dark-surface relative isolate min-h-64 overflow-hidden rounded-[20px] p-6 sm:p-8">
