@@ -67,7 +67,11 @@ export function createApp() {
   })
 
   app.use((error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
-    logger.error({ err: error }, 'Unhandled request error')
+    if (error instanceof SyntaxError && 'type' in error && error.type === 'entity.parse.failed') {
+      response.status(400).json({ error: { code: 'INVALID_INPUT', message: 'Provide a valid JSON request body.' } })
+      return
+    }
+    logger.error({ kind: error instanceof Error ? error.name : 'UnknownError' }, 'Unhandled request error')
     response.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' } })
   })
 

@@ -51,3 +51,20 @@ The brief’s admin area is tracked under FE-01/02/11 and API-03. Program and re
 ## REST profile candidate
 
 The candidate route `/fitness-api/profile` provides self-scoped GET and PUT through a Vercel function. It validates Supabase asymmetric JWTs and AAL2 before forwarding the same bearer token to the RLS-protected data API. Run `node --test tests/fitness-profile.test.mjs` for the pre-release request-handler tests. This is the first API slice. The browser cutover and authenticated production verification are pending, so no SRS status changed.
+
+## Batch 1 REST candidate
+
+The route manifest in `server/fitness-contract.mjs` covers 42 method/path combinations, including aliases and health. `api/fitness-batch.mjs` gates registered paths with Supabase JWT and AAL2 checks, then dispatches to the existing Express routes with their Zod validation and database ownership checks.
+
+| ID | Candidate evidence | Remaining gap |
+|---|---|---|
+| API-01 | Anonymous manifest tests and query rejection check in `tests/fitness-batch.test.mjs` | Authenticated search checks |
+| API-02 | Supabase owns sign-in; legacy Keycloak login is excluded from this namespace | Hosted provider rate-limit evidence |
+| API-03 | Existing user routes mounted, including the 303 self redirect | Registration requires a Supabase identity; admin-field contract, password change, and cascading deletion are incomplete |
+| API-04 | Profile routes mounted; independent profile handler tests cover ownership and MFA | API schema uses the compatibility Profile table; no migration of existing browser profiles performed |
+| API-05 | Goal lifecycle and completion routes mounted | Hosted tests and saved-week reconciliation |
+| API-06 | Workout list, detail and mutation routes mounted | Hosted ownership tests |
+| API-07 | Exercise list, detail and mutation routes mounted | Existing mutation implementation is admin-only |
+| API-08 | Anonymous and unknown-route cases exercised by the manifest tests | Authenticated create/error contracts not verified |
+
+`013_srs_api_schema.sql` creates the compatibility schema without backfilling existing records. Preview database access requires a server-only `SRS_DATABASE_URL` for the designated staging database. The preview uses the existing explicit route ownership checks; it does not establish a dedicated per-user SQL role or RLS claim context on the Prisma connection.
