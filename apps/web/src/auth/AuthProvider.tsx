@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AuthContext, type AuthContextValue } from './AuthContext'
 import { clearSession, readSession, storeSession, type AppSession } from './session'
 import { apiUrl } from './api'
-import { getSupabaseClient, matchesSupabaseAccount, supabaseAuthConfigured, toAppSession, useSupabaseAuth } from './supabase'
+import { getSupabaseClient, matchesSupabaseAccount, provisionApiUser, supabaseAuthConfigured, toAppSession, useSupabaseAuth } from './supabase'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<AppSession | null>(() => useSupabaseAuth ? null : readSession())
@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     let active = true
     const client = getSupabaseClient()
-    void client.auth.getSession().then(({ data }) => {
+    void client.auth.getSession().then(async ({ data }) => {
       if (!active || !data.session || sessionRef.current?.authProvider !== 'supabase') return
       const restored = toAppSession(data.session, sessionRef.current)
       if (!matchesSupabaseAccount(sessionRef.current, data.session) || restored.assuranceLevel !== 'aal2') {
@@ -27,9 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSessionState(null)
         return
       }
-      sessionRef.current = restored
-      storeSession(restored)
-      setSessionState(restored)
+      const profileSession = await provisionApiUser(data.session).catch(() => restored)
+      if (!active || !sessionRef.current || !matchesSupabaseAccount(sessionRef.current, data.session)) return
+      sessionRef.current = profileSession
+      storeSession(profileSession)
+      setSessionState(profileSession)
     }).catch(() => {
       if (!active) return
       clearSession()
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const accessToken = session?.accessToken
-    if (!accessToken) return
+    if (!accessToken || session.authProvider === 'supabase') return
     const requestedSession = sessionRef.current
     const controller = new AbortController()
     fetch(`${apiUrl.replace(/\/$/, '')}/user`, {
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionState(updated)
     }).catch(() => { /* Keep the current session if a profile refresh is temporarily unavailable. */ })
     return () => controller.abort()
-  }, [session?.accessToken])
+  }, [session?.accessToken, session?.authProvider])
 
   const setSession = useCallback((nextSession: AppSession) => {
     sessionRef.current = nextSession

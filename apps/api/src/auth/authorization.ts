@@ -49,7 +49,7 @@ export function createAuthMiddleware(jwks?: JWTVerifyGetKey): RequestHandler {
         issuer,
         audience: provider.audience,
         algorithms: ['RS256', 'ES256'],
-        clockTolerance: 5,
+        clockTolerance: supabase ? 60 : 5,
         requiredClaims: ['exp'],
       })
       if (supabase && payload.aal !== 'aal2') {
@@ -60,7 +60,7 @@ export function createAuthMiddleware(jwks?: JWTVerifyGetKey): RequestHandler {
       const tokenEmail = typeof payload.email === 'string' ? payload.email : payload.preferred_username
       if (typeof payload.sub !== 'string' || typeof tokenEmail !== 'string' || !tokenEmail.includes('@')) {
         logger.warn({ hasSubject: typeof payload.sub === 'string', claimNames: Object.keys(payload).sort() }, 'Verified token is missing required identity claims')
-        response.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'The supplied access token is invalid.' } })
+        response.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Your sign-in could not be verified. Please sign in again.' } })
         return
       }
 
@@ -87,7 +87,7 @@ export function createAuthMiddleware(jwks?: JWTVerifyGetKey): RequestHandler {
       }
     } catch {
       logger.warn({ method: request.method, path: request.path }, 'Bearer token validation failed')
-      response.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'The supplied access token is invalid or expired.' } })
+      response.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Your sign-in could not be verified. Please sign in again.' } })
       return
     }
 

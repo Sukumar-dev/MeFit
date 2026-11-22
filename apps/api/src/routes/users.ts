@@ -17,7 +17,9 @@ async function viewerIsAdmin(subject: string, tokenRoles: readonly string[]) {
 
 const linkedAccountRequired = { error: { code: 'ACCOUNT_LINK_REQUIRED', message: 'Connect your existing MeFit sign-in before continuing.' } }
 
-router.post('/user/link', requireAuth, linkSupabaseIdentity)
+if (process.env.AUTH_PROVIDER === 'dual') {
+  router.post('/user/link', requireAuth, linkSupabaseIdentity)
+}
 
 router.post('/user', requireAuth, async (request, response, next) => {
   try {

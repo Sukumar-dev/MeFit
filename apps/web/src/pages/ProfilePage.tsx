@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Activity, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { apiUrl } from '../auth/api'
-import { getProfileSession, useSupabaseAuth } from '../auth/supabase'
+import { getProfileSession, getSupabaseClient, useSupabaseAuth } from '../auth/supabase'
 
 const profileSaveTimeoutMs = 60_000
 
@@ -16,12 +16,14 @@ export function ProfilePage() {
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [directSaved, setDirectSaved] = useState(false)
+  const supabaseId = session?.authProvider === 'supabase' ? session.user.id : undefined
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
-  const [loadingProfile, setLoadingProfile] = useState(Boolean(session?.user.hasProfile))
+  const [loadingProfile, setLoadingProfile] = useState(Boolean(supabaseId || session?.user.hasProfile))
   const [form, setForm] = useState({ display_name: session?.user.displayName ?? '', profile_image_url: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', height_cm: '', weight_kg: '', days_available: '3', minutes_per_session: '30', activity_level: 'light', experience: 'beginner', limitations: false, line1: '', city: '', country: '' })
 
   useEffect(() => {
-    if (!session?.user.hasProfile) return
+    if (supabaseId || !session?.user.hasProfile) return
     const controller = new AbortController()
     fetch(`${apiUrl}/profile`, { headers: { Authorization: `Bearer ${session.accessToken}`, Accept: 'application/json' }, signal: controller.signal })
       .then(async (response) => { const result = await response.json() as { profile_image_url?: string | null; timezone?: string; height_cm?: number | string | null; weight_kg?: number | string | null; activity_level?: string; fitness_experience?: string; readiness?: { days_available?: number; minutes_per_session?: number; activity_level?: string; experience?: string; limitations?: boolean; evaluation?: Evaluation }; address?: { line1?: string; city?: string; country?: string } | null; error?: { message?: string } }; if (!response.ok) throw new Error(result.error?.message ?? 'Your profile could not be loaded.'); return result })
@@ -29,7 +31,31 @@ export function ProfilePage() {
       .catch((cause: unknown) => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Your profile could not be loaded.') })
       .finally(() => { if (!controller.signal.aborted) setLoadingProfile(false) })
     return () => controller.abort()
-  }, [session?.accessToken, session?.user.hasProfile])
+  }, [session?.accessToken, session?.user.hasProfile, supabaseId])
+
+  useEffect(() => {
+    if (!supabaseId) return
+    const controller = new AbortController()
+    void getSupabaseClient().from('profiles').select('*').eq('id', supabaseId)
+      .abortSignal(controller.signal).maybeSingle().then(({ data, error }) => {
+        if (controller.signal.aborted) return
+        if (error) setError('Your profile could not be loaded. Please reload and try again.')
+        else if (data) setForm((previous) => ({
+          ...previous,
+          display_name: data.display_name || previous.display_name,
+          profile_image_url: data.avatar_url ?? '',
+          timezone: data.display_name ? data.timezone : previous.timezone,
+          height_cm: data.height_cm == null ? '' : String(data.height_cm),
+          weight_kg: data.weight_kg == null ? '' : String(data.weight_kg),
+          days_available: String(data.days_available),
+          minutes_per_session: String(data.minutes_per_workout),
+          activity_level: data.current_activity,
+          experience: data.experience,
+        }))
+        setLoadingProfile(false)
+      })
+    return () => controller.abort()
+  }, [supabaseId])
 
   function update(field: keyof typeof form, value: string | boolean) {
     setForm((previous) => ({ ...previous, [field]: value }))
@@ -43,6 +69,22 @@ export function ProfilePage() {
     let fitnessDetailsSaved = false
     try {
       let activeSession = await getProfileSession(session)
+      if (supabaseId) {
+        const displayName = form.display_name.trim()
+        if (!displayName) throw new Error('Enter a display name before saving.')
+        const { error } = await getSupabaseClient().from('profiles').upsert({
+          id: supabaseId, display_name: displayName, avatar_url: form.profile_image_url || null,
+          height_cm: form.height_cm ? Number(form.height_cm) : null,
+          weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
+          timezone: form.timezone, days_available: Number(form.days_available),
+          minutes_per_workout: Number(form.minutes_per_session),
+          current_activity: form.activity_level, experience: form.experience,
+        })
+        if (error) throw new Error('Your profile could not be saved. Please check your entries and try again.')
+        setSession({ ...activeSession, user: { ...activeSession.user, displayName, hasProfile: true } })
+        setDirectSaved(true)
+        return
+      }
       async function sendProfileRequest(path: string, options: RequestInit) {
         const send = () => fetch(`${apiUrl.replace(/\/$/, '')}${path}`, {
           ...options,
@@ -130,14 +172,14 @@ export function ProfilePage() {
         )}
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
           <div className="flex items-start gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-900"><Activity /></span><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Your starting point</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Set up your fitness profile</h1><p className="mt-2 leading-6 text-slate-600">Tell us what fits your week. You can update these details later.</p></div></div>
-          {evaluation ? <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5" role="status"><div className="flex items-center gap-2 font-semibold text-emerald-950"><CheckCircle2 size={19} />Profile saved · {evaluation.fitness_level.toLowerCase()}</div><p className="mt-2 text-sm leading-6 text-emerald-900">Readiness score {evaluation.score}/100. {evaluation.note}</p>{evaluation.suitability_warning && <p className="mt-2 text-sm leading-6 text-amber-900">{evaluation.suitability_warning}</p>}<button type="button" onClick={() => navigate('/', { replace: true })} className="mt-4 min-h-11 rounded-xl bg-emerald-900 px-5 font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Request Contributions</button></div> : loadingProfile ? <div className="mt-8 rounded-xl bg-slate-50 p-6 text-sm text-slate-600" role="status">Loading your saved profile…</div> : <form onSubmit={(event) => void save(event)} className="mt-8 space-y-8">
+          {directSaved ? <div className="mt-8" role="status"><p>Profile saved</p><Link to="/" className="mt-4 inline-flex rounded-xl bg-emerald-900 px-5 py-3 font-semibold text-white">Go to dashboard</Link></div> : evaluation ? <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5" role="status"><div className="flex items-center gap-2 font-semibold text-emerald-950"><CheckCircle2 size={19} />Profile saved · {evaluation.fitness_level.toLowerCase()}</div><p className="mt-2 text-sm leading-6 text-emerald-900">Readiness score {evaluation.score}/100. {evaluation.note}</p>{evaluation.suitability_warning && <p className="mt-2 text-sm leading-6 text-amber-900">{evaluation.suitability_warning}</p>}<button type="button" onClick={() => navigate('/', { replace: true })} className="mt-4 min-h-11 rounded-xl bg-emerald-900 px-5 font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Go to dashboard</button></div> : loadingProfile ? <div className="mt-8 rounded-xl bg-slate-50 p-6 text-sm text-slate-600" role="status">Loading your saved profile…</div> : <form onSubmit={(event) => void save(event)} className="mt-8 space-y-8">
             {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">{error}</div>}
             <fieldset><legend className="text-base font-semibold">Account and profile</legend><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Display name<input required minLength={1} maxLength={120} className={fieldClass} value={form.display_name} onChange={(event) => update('display_name', event.target.value)} /></label><label className={labelClass}>Profile image URL (HTTPS)<input type="url" className={fieldClass} value={form.profile_image_url} onChange={(event) => update('profile_image_url', event.target.value)} placeholder="https://…" /></label></div><p className="mt-3 text-sm text-slate-600">Email and password are managed securely by your identity provider.{useSupabaseAuth ? ' Use the password reset option on the sign-in page if you need to change your password.' : <> <a className="font-semibold text-emerald-900 underline underline-offset-4" href={`${import.meta.env.VITE_OIDC_AUTHORITY ?? 'http://localhost:8080/realms/mefit'}/account/#/personal-info`} target="_blank" rel="noreferrer">Manage sign-in details</a></>}</p><p className="mt-4 text-sm font-semibold">Physical details <span className="font-normal text-slate-500">(optional)</span></p><div className="mt-3 grid gap-4 sm:grid-cols-3"><label className={labelClass}>Height (cm)<input className={fieldClass} type="number" min="80" max="250" step="0.1" value={form.height_cm} onChange={(event) => update('height_cm', event.target.value)} /></label><label className={labelClass}>Weight (kg)<input className={fieldClass} type="number" min="25" max="350" step="0.1" value={form.weight_kg} onChange={(event) => update('weight_kg', event.target.value)} /></label><label className={labelClass}>Time zone<input required className={fieldClass} value={form.timezone} onChange={(event) => update('timezone', event.target.value)} /></label></div></fieldset>
-            <fieldset><legend className="text-base font-semibold">Your weekly readiness</legend><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Days available<input required className={fieldClass} type="number" min="1" max="7" value={form.days_available} onChange={(event) => update('days_available', event.target.value)} /></label><label className={labelClass}>Minutes per workout<input required className={fieldClass} type="number" min="10" max="180" step="5" value={form.minutes_per_session} onChange={(event) => update('minutes_per_session', event.target.value)} /></label><label className={labelClass}>Current activity<select className={fieldClass} value={form.activity_level} onChange={(event) => update('activity_level', event.target.value)}><option value="sedentary">Mostly sitting</option><option value="light">Light activity</option><option value="moderate">Moderately active</option><option value="high">Very active</option></select></label><label className={labelClass}>Workout experience<select className={fieldClass} value={form.experience} onChange={(event) => update('experience', event.target.value)}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label></div><label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-950"><input type="checkbox" className="mt-1 accent-emerald-800" checked={form.limitations} onChange={(event) => update('limitations', event.target.checked)} /><span>I have an injury, health concern, or movement limitation to keep in mind. MeFit will show a suitability reminder.</span></label></fieldset>
-            <fieldset><legend className="text-base font-semibold">Address <span className="font-normal text-slate-500">(optional)</span></legend><div className="mt-4 grid gap-4 sm:grid-cols-3"><label className={`${labelClass} sm:col-span-3`}>Street address<input className={fieldClass} value={form.line1} onChange={(event) => update('line1', event.target.value)} /></label><label className={labelClass}>City<input className={fieldClass} value={form.city} onChange={(event) => update('city', event.target.value)} /></label><label className={`${labelClass} sm:col-span-2`}>Country<input className={fieldClass} value={form.country} onChange={(event) => update('country', event.target.value)} /></label></div></fieldset>
+            <fieldset><legend className="text-base font-semibold">Your weekly readiness</legend><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Days available<input required className={fieldClass} type="number" min="1" max="7" value={form.days_available} onChange={(event) => update('days_available', event.target.value)} /></label><label className={labelClass}>Minutes per workout<input required className={fieldClass} type="number" min="10" max="180" step="5" value={form.minutes_per_session} onChange={(event) => update('minutes_per_session', event.target.value)} /></label><label className={labelClass}>Current activity<select className={fieldClass} value={form.activity_level} onChange={(event) => update('activity_level', event.target.value)}><option value="sedentary">Mostly sitting</option><option value="light">Light activity</option><option value="moderate">Moderately active</option><option value="high">Very active</option></select></label><label className={labelClass}>Workout experience<select className={fieldClass} value={form.experience} onChange={(event) => update('experience', event.target.value)}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label></div>{!supabaseId && <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-950"><input type="checkbox" className="mt-1 accent-emerald-800" checked={form.limitations} onChange={(event) => update('limitations', event.target.checked)} /><span>I have an injury, health concern, or movement limitation to keep in mind. MeFit will show a suitability reminder.</span></label>}</fieldset>
+            {!supabaseId && <fieldset><legend className="text-base font-semibold">Address <span className="font-normal text-slate-500">(optional)</span></legend><div className="mt-4 grid gap-4 sm:grid-cols-3"><label className={`${labelClass} sm:col-span-3`}>Street address<input className={fieldClass} value={form.line1} onChange={(event) => update('line1', event.target.value)} /></label><label className={labelClass}>City<input className={fieldClass} value={form.city} onChange={(event) => update('city', event.target.value)} /></label><label className={`${labelClass} sm:col-span-2`}>Country<input className={fieldClass} value={form.country} onChange={(event) => update('country', event.target.value)} /></label></div></fieldset>}
             <div className="rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">This readiness score is planning guidance based on your answers, not a medical assessment. You can skip height, weight, and address.</div>
             <button type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-emerald-900 px-5 py-3 font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-60">{pending ? 'Saving your profile…' : 'Save profile and continue'}</button>
-            {session?.user.hasProfile && <button type="button" disabled={pending} onClick={() => void deleteProfile()} className="min-h-10 w-full rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-800 hover:bg-rose-50 disabled:opacity-60">Delete fitness profile</button>}
+            {!supabaseId && session?.user.hasProfile && <button type="button" disabled={pending} onClick={() => void deleteProfile()} className="min-h-10 w-full rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-800 hover:bg-rose-50 disabled:opacity-60">Delete fitness profile</button>}
           </form>}
         </section>
         {showContributorRequest && <ContributorRequestPanel />}

@@ -27,6 +27,7 @@ vi.mock('./supabase', () => ({
     },
   }),
   toAppSession: () => previous,
+  provisionApiUser: async () => ({ ...previous, user: { ...previous.user, hasProfile: true } }),
   matchesSupabaseAccount: () => true,
 }))
 
@@ -35,15 +36,14 @@ function AccountStatus() {
   return <span>{session?.user.id} {session?.user.roles.join(',')} {String(session?.user.hasProfile)}</span>
 }
 
-it('refreshes account identity, roles and profile status from the authenticated API after restoration', async () => {
+it('restores the saved Supabase profile without calling the legacy API', async () => {
   storeSession(previous)
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ id: 'canonical-id', display_name: 'QA', roles: ['USER', 'CONTRIBUTOR'], has_profile: true }),
-  }))
+  const fetch = vi.fn()
+  vi.stubGlobal('fetch', fetch)
   try {
     render(<AuthProvider><AccountStatus /></AuthProvider>)
-    expect(await screen.findByText('canonical-id USER,CONTRIBUTOR true')).toBeInTheDocument()
+    expect(await screen.findByText('initial-id USER true')).toBeInTheDocument()
+    expect(fetch).not.toHaveBeenCalled()
   } finally {
     clearSession()
     vi.unstubAllGlobals()

@@ -1,6 +1,5 @@
 import { createClient, type Session as SupabaseSession } from '@supabase/supabase-js'
 import type { AppSession } from './session'
-import { apiUrl } from './api'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -15,11 +14,34 @@ export type SupabaseMfaChallenge = {
 
 export type SupabaseMfaStep = { session: SupabaseSession } | { challenge: SupabaseMfaChallenge }
 
-let client: ReturnType<typeof createClient> | undefined
+type ProfileRow = {
+  id: string
+  display_name: string
+  avatar_url: string | null
+  height_cm: number | null
+  weight_kg: number | null
+  timezone: string
+  days_available: number
+  minutes_per_workout: number
+  current_activity: string
+  experience: string
+  created_at: string
+  updated_at: string
+}
+
+type Database = {
+  public: {
+    Tables: { profiles: { Row: ProfileRow; Insert: Partial<ProfileRow> & { id: string }; Update: Partial<ProfileRow>; Relationships: [] } }
+    Views: Record<never, never>
+    Functions: Record<never, never>
+  }
+}
+
+let client: ReturnType<typeof createClient<Database>> | undefined
 
 export function getSupabaseClient() {
   if (!supabaseUrl || !supabasePublishableKey) throw new Error('Supabase sign-in is not configured yet. Please try again later.')
-  client ??= createClient(supabaseUrl, supabasePublishableKey, {
+  client ??= createClient<Database>(supabaseUrl, supabasePublishableKey, {
     auth: { flowType: 'pkce', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
   })
   return client
@@ -37,7 +59,7 @@ export function toAppSession(session: SupabaseSession, previous?: AppSession | n
     accessToken: session.access_token,
     expiresAt: (session.expires_at ?? Math.floor(Date.now() / 1000) + session.expires_in) * 1000,
     user: {
-      id: sameAccount ? previous.user.id : session.user.id,
+      id: session.user.id,
       email: session.user.email ?? '',
       displayName: sameAccount
         ? (previous.user.displayName || displayName)
@@ -119,28 +141,15 @@ export class AccountLinkRequiredError extends Error {}
 
 export async function provisionApiUser(session: SupabaseSession): Promise<AppSession> {
   const appSession = toAppSession(session)
-  const response = await fetch(`${apiUrl.replace(/\/$/, '')}/user`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({}),
-    signal: AbortSignal.timeout(90_000),
-  })
-  const user = await response.json() as { id?: string; email?: string; display_name?: string; first_name?: string | null; last_name?: string | null; roles?: string[]; has_profile?: boolean; error?: { code?: string; message?: string } }
-  if (response.status === 409 && user.error?.code === 'ACCOUNT_LINK_REQUIRED') {
-    throw new AccountLinkRequiredError(user.error.message)
-  }
-  if (!response.ok || !user.id || !user.email) throw new Error(user.error?.message ?? `Account setup failed (${response.status}). Please try again.`)
+  const { data: profile, error } = await getSupabaseClient()
+    .from('profiles').select('display_name').eq('id', session.user.id).maybeSingle()
+  if (error) throw new Error('Your profile could not be loaded. Please try again.')
   return {
     ...appSession,
     user: {
       ...appSession.user,
-      id: user.id,
-      email: user.email,
-      displayName: user.display_name ?? appSession.user.displayName,
-      firstName: user.first_name ?? undefined,
-      lastName: user.last_name ?? undefined,
-      roles: user.roles ?? ['USER'],
-      hasProfile: user.has_profile === true,
+      displayName: profile?.display_name || appSession.user.displayName,
+      hasProfile: Boolean(profile?.display_name),
     },
   }
 }

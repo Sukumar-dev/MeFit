@@ -40,13 +40,13 @@ describe('Supabase authenticator lifecycle', () => {
     await expect(confirmSupabaseSignup('test-token-hash')).rejects.toThrow('invalid or expired')
   })
 
-  it('refreshes a profile session, preserves its API user ID, and rejects account changes', async () => {
+  it('refreshes a profile session, uses the Supabase user ID, and rejects account changes', async () => {
     const { getProfileSession, toAppSession } = await import('./supabase')
     const previous = toAppSession(session)
     previous.user.id = 'linked-api-id'
     const refreshedToken = 'header.' + btoa(JSON.stringify({ aal: 'aal2', sub: 'subject', iat: 2 })) + '.signature'
     mocks.refreshSession.mockResolvedValue({ data: { session: { ...session, access_token: refreshedToken } }, error: null })
-    await expect(getProfileSession(previous, true)).resolves.toMatchObject({ accessToken: refreshedToken, user: { id: 'linked-api-id' } })
+    await expect(getProfileSession(previous, true)).resolves.toMatchObject({ accessToken: refreshedToken, user: { id: 'subject' } })
     mocks.refreshSession.mockResolvedValue({ data: { session: { ...session, user: { ...session.user, id: 'different' } } }, error: null })
     await expect(getProfileSession(previous, true)).rejects.toThrow('Sign in again')
     mocks.refreshSession.mockResolvedValue({ data: { session: null }, error: { code: 'refresh_token_not_found' } })

@@ -84,7 +84,7 @@ it('links both sign-ins without changing account data and preserves access throu
     for (const overrides of [
       { issuer: legacyIssuer, audience: 'mefit-api', expiration: '5m' },
       { issuer: `${origin}/auth/v1`, audience: 'mefit-api', expiration: '5m' },
-      { issuer: `${origin}/auth/v1`, audience: 'authenticated', expiration: '1 minute ago' },
+      { issuer: `${origin}/auth/v1`, audience: 'authenticated', expiration: '2 minutes ago' },
       { issuer: `${origin}/untrusted`, audience: 'authenticated', expiration: '5m' },
     ]) {
       const wrongToken = await new SignJWT({ email, aal: 'aal2' })
