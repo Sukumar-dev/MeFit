@@ -5,6 +5,7 @@ import { useAuth } from './auth/AuthContext'
 import { ThemePreference } from './components/ThemePreference'
 import { ImageCredits } from './pages/ImageCredits'
 import { LandingPage } from './pages/LandingPage'
+import { srsApiUrl } from './auth/api'
 import { RequireAuth } from './auth/RequireAuth'
 
 const AuthPage = lazy(() => import('./pages/AuthPage').then((module) => ({ default: module.AuthPage })))
@@ -15,10 +16,21 @@ const FitnessWorkspace = lazy(() => import('./pages/FitnessWorkspace').then((mod
 
 const ExerciseLibraryPage = lazy(() => import('./pages/ExerciseLibraryPage').then(({ ExerciseLibraryPage }) => ({ default: ExerciseLibraryPage })))
 
+const AdminPage = lazy(() => import('./pages/AdminPage').then(({ AdminPage }) => ({ default: AdminPage })))
+const ContributorPage = lazy(() => import('./pages/ContributorPage').then(({ ContributorPage }) => ({ default: ContributorPage })))
+
+function RolePage({ admin = false }: { admin?: boolean }) {
+  const { session } = useAuth()
+  const roles = session?.user.roles ?? []
+  const allowed = roles.includes('ADMIN') || (!admin && roles.includes('CONTRIBUTOR'))
+  if (!srsApiUrl || !allowed) return <Navigate to="/" replace />
+  return admin ? <AdminPage /> : <ContributorPage />
+}
+
 function StartPage() {
   const { session, authReady } = useAuth()
   if (!authReady) return <main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600" role="status">Restoring your session…</main>
-  if (!session) return <LandingPage />
+  if (!session) return srsApiUrl ? <Navigate to="/login" replace /> : <LandingPage />
   return <FitnessWorkspace />
 }
 
@@ -40,8 +52,8 @@ function AppRoutes() {
         <Route path="/catalog" element={<ExerciseLibraryPage />} />
         <Route path="/exercises" element={<ExerciseLibraryPage />} />
         <Route path="/goals" element={<Navigate to="/#planner" replace />} />
-        <Route path="/admin" element={<Navigate to="/#settings" replace />} />
-        <Route path="/contribute" element={<Navigate to="/#settings" replace />} />
+        <Route path="/admin" element={<RolePage admin />} />
+        <Route path="/contribute" element={<RolePage />} />
       </Route>
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/plan" element={<Navigate to="/#planner" replace />} />

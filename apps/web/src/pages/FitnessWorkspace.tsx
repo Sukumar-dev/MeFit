@@ -142,7 +142,7 @@ export function FitnessWorkspace() {
   const minutes = Math.round(logs.filter((log) => log.performed_on >= todayWeekFirst && log.performed_on <= todayWeekLast).reduce((total, log) => total + log.duration_seconds, 0) / 60)
 
   return <main className="mf-page min-h-screen">
-    <WorkspaceNav name={session.user.displayName} signOut={() => void logout().catch(() => setActionError('Could not sign out. Please try again.'))} />
+    <WorkspaceNav name={session.user.displayName} roles={session.user.roles} signOut={() => void logout().catch(() => setActionError('Could not sign out. Please try again.'))} />
     <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-5 px-4 pt-6 pb-28 sm:px-8 lg:pb-12">
       {actionError && <p role="alert" className="text-[var(--mf-error)]">{actionError}</p>}
       {toast && <Toast>{toast}</Toast>}

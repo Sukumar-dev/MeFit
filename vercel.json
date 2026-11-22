@@ -4,6 +4,10 @@
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     {
+      "source": "/fitness-account/profile",
+      "destination": "/api/fitness-profile"
+    },
+    {
       "source": "/fitness-api/:path*",
       "destination": "/api/fitness-batch"
     },

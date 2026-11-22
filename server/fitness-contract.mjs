@@ -28,6 +28,7 @@ export const routes = [
   ['POST','exercise','contributor'],
   ['PATCH','exercise/:id','contributor'],
   ['DELETE','exercise/:id','contributor'],
+  ['GET','contributor/content','contributor'],
   ['POST','contributor-request','user'],
   ['GET','contributor-request','user'],
   ['GET','admin/contributor-requests','admin'],

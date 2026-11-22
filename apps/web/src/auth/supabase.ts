@@ -1,3 +1,4 @@
+import { authenticatedRequest, srsApiUrl } from './api'
 import type { Exercise } from '../pages/exerciseFilters'
 import { createClient, type Session as SupabaseSession } from '@supabase/supabase-js'
 import type { AppSession } from './session'
@@ -15,7 +16,7 @@ export type SupabaseMfaChallenge = {
 
 export type SupabaseMfaStep = { session: SupabaseSession } | { challenge: SupabaseMfaChallenge }
 
-type ProfileRow = {
+export type ProfileRow = {
   id: string
   display_name: string
   avatar_url: string | null
@@ -154,17 +155,49 @@ export async function verifyMfaChallenge(challenge: SupabaseMfaChallenge, code: 
 
 export class AccountLinkRequiredError extends Error {}
 
+export async function readFitnessProfile(session: AppSession, signal?: AbortSignal): Promise<ProfileRow | null> {
+  if (srsApiUrl) {
+    const response = await authenticatedRequest('/fitness-account/profile', session, signal ? { signal } : {}, '')
+    if (!response.ok) throw new Error('Your profile could not be loaded. Please try again.')
+    return response.json() as Promise<ProfileRow | null>
+  }
+  let query = getSupabaseClient().from('profiles').select('*').eq('id', session.user.id)
+  if (signal) query = query.abortSignal(signal)
+  const { data, error } = await query.maybeSingle()
+  if (error) throw new Error('Your profile could not be loaded. Please try again.')
+  return data
+}
+
+export async function saveFitnessProfile(session: AppSession, profile: Omit<ProfileRow, 'id' | 'created_at' | 'updated_at'>) {
+  if (srsApiUrl) {
+    const response = await authenticatedRequest('/fitness-account/profile', session, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(profile),
+    }, '')
+    if (!response.ok) throw new Error('Your profile could not be saved. Please check your entries and try again.')
+    return
+  }
+  const { error } = await getSupabaseClient().from('profiles').upsert({ ...profile, id: session.user.id })
+  if (error) throw new Error('Your profile could not be saved. Please check your entries and try again.')
+}
+
 export async function provisionApiUser(session: SupabaseSession): Promise<AppSession> {
   const appSession = toAppSession(session)
-  const { data: profile, error } = await getSupabaseClient()
-    .from('profiles').select('display_name').eq('id', session.user.id).maybeSingle()
-  if (error) throw new Error('Your profile could not be loaded. Please try again.')
+  const profile = await readFitnessProfile(appSession)
+  let roles: string[] = []
+  if (srsApiUrl) {
+    const response = await authenticatedRequest('/user', appSession)
+    if (response.ok) {
+      const user = await response.json() as { roles?: unknown }
+      if (Array.isArray(user.roles)) roles = user.roles.filter((role): role is string => ['USER', 'CONTRIBUTOR', 'ADMIN'].includes(role))
+    }
+  }
   return {
     ...appSession,
     user: {
       ...appSession.user,
       displayName: profile?.display_name || appSession.user.displayName,
       hasProfile: Boolean(profile?.display_name),
+      roles,
     },
   }
 }

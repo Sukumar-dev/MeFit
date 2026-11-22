@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ArrowLeft, Archive, Pencil, Plus, Save } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { apiUrl } from '../auth/api'
+import { authenticatedRequest } from '../auth/api'
 
 type Exercise = { id: string; name: string; description: string; targetMuscleGroup: string }
 type Workout = { id: string; name: string; type: string; description: string }
@@ -36,11 +36,10 @@ export function ContributorPage() {
   const load = useCallback(async () => {
     if (!session) return
     try {
-      const headers = { Authorization: `Bearer ${session.accessToken}`, Accept: 'application/json' }
       const [e, w, authored] = await Promise.all([
-        fetch(`${apiUrl}/exercises`, { headers }).then(async (r) => { const v = await r.json() as { groups?: Array<{ exercises: Array<{ id: string; name: string; description: string; target_muscle_group: string }> }> }; if (!r.ok) throw new Error('Could not load exercises'); return v }),
-        fetch(`${apiUrl}/workouts`, { headers }).then(async (r) => { const v = await r.json() as { groups?: Array<{ workouts: Workout[] }> }; if (!r.ok) throw new Error('Could not load workouts'); return v }),
-        fetch(`${apiUrl}/contributor/content`, { headers }).then(async (r) => { const v = await r.json() as { exercises?: OwnItem[]; workouts?: OwnItem[]; programs?: OwnItem[]; error?: { message?: string } }; if (!r.ok) throw new Error(v.error?.message ?? 'Could not load your content'); return v }),
+        authenticatedRequest(`/exercises`, session).then(async (r) => { const v = await r.json() as { groups?: Array<{ exercises: Array<{ id: string; name: string; description: string; target_muscle_group: string }> }> }; if (!r.ok) throw new Error('Could not load exercises'); return v }),
+        authenticatedRequest(`/workouts`, session).then(async (r) => { const v = await r.json() as { groups?: Array<{ workouts: Workout[] }> }; if (!r.ok) throw new Error('Could not load workouts'); return v }),
+        authenticatedRequest(`/contributor/content`, session).then(async (r) => { const v = await r.json() as { exercises?: OwnItem[]; workouts?: OwnItem[]; programs?: OwnItem[]; error?: { message?: string } }; if (!r.ok) throw new Error(v.error?.message ?? 'Could not load your content'); return v }),
       ])
       setExercises(e.groups?.flatMap((g) => g.exercises.map((item) => ({ id: item.id, name: item.name, description: item.description, targetMuscleGroup: item.target_muscle_group }))) ?? [])
       setWorkouts(w.groups?.flatMap((g) => g.workouts) ?? [])
@@ -61,7 +60,7 @@ export function ContributorPage() {
       if (kind === 'exercise') { path = editingId ? `/exercise/${editingId}` : '/exercise'; payload = { name, description, target_muscle_group: group, ...(imageUrl ? { image_url: imageUrl } : {}), ...(videoUrl ? { video_url: videoUrl } : {}) } }
       else if (kind === 'workout') { path = editingId ? `/workout/${editingId}` : '/workout'; payload = { name, type: group, description, exercises: exerciseIds.map((exercise_id, position) => ({ exercise_id, position, sets: Array.from({ length: Number(setCount) }, () => ({ repetitions: Number(repetitions), rest_seconds: 45 })) })) } }
       else { path = editingId ? `/program/${editingId}` : '/program'; payload = { name, category: group, description, workout_ids: workoutIds } }
-      const response = await fetch(`${apiUrl}${path}`, { method: editingId ? 'PATCH' : 'POST', headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload) })
+      const response = await authenticatedRequest(path, session, { method: editingId ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const result = await response.json() as { error?: { message?: string } }
       if (!response.ok) throw new Error(result.error?.message ?? 'Content could not be saved.')
       setNotice(editingId ? 'Your changes have been saved.' : `${kind[0]!.toUpperCase()}${kind.slice(1)} added to the library.`)
@@ -75,7 +74,7 @@ export function ContributorPage() {
     setError(null); setNotice(null)
     try {
       const path = kind === 'exercise' ? `/exercises/${item.id}` : kind === 'workout' ? `/workout/${item.id}` : `/program/${item.id}`
-      const response = await fetch(`${apiUrl}${path}`, { headers: { Authorization: `Bearer ${session.accessToken}`, Accept: 'application/json' } })
+      const response = await authenticatedRequest(path, session)
       const result = await response.json() as { name: string; description: string; target_muscle_group?: string; targetMuscleGroup?: string; imageUrl?: string | null; videoUrl?: string | null; type?: string; category?: string; exercises?: Array<{ id: string; sets?: Array<{ repetitions: number | null }> }>; workouts?: Array<{ id: string }> }
       if (!response.ok) throw new Error('The selected content could not be loaded for editing.')
       setEditingId(item.id); setName(result.name); setDescription(result.description); setGroup(result.target_muscle_group ?? result.targetMuscleGroup ?? result.type ?? result.category ?? '')
@@ -90,7 +89,7 @@ export function ContributorPage() {
     if (!session || !window.confirm(`Archive “${item.name}”? It will be hidden from the public library.`)) return
     setPending(true); setError(null); setNotice(null)
     try {
-      const response = await fetch(`${apiUrl}/${kind}/${item.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session.accessToken}`, Accept: 'application/json' } })
+      const response = await authenticatedRequest(`/${kind}/${item.id}`, session, { method: 'DELETE' })
       if (!response.ok) { const result = await response.json() as { error?: { message?: string } }; throw new Error(result.error?.message ?? 'The item could not be archived.') }
       setNotice('Content archived. Existing goals keep their saved plan snapshot.')
       if (editingId === item.id) reset()

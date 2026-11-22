@@ -76,3 +76,7 @@ The route manifest in `server/fitness-contract.mjs` covers 42 method/path combin
 - Local: **47/47** manifest and profile-handler checks, **25/25** existing API tests on disposable PostgreSQL, **36/36** frontend tests, lint and build passed. Lint retains existing warnings.
 - Migration 013 applied twice on a fresh disposable database. All 16 compatibility tables had RLS enabled.
 - Authenticated role and write tests remain pending. The separate compatibility schema does not import the active planner, exercise library, or profiles.
+
+## Batch 2 browser candidate
+
+When `VITE_SRS_API_URL=/fitness-api` is configured, the candidate uses the separate REST profile adapter for current profile data, retrieves roles from the server, and exposes role-gated contributor and administration screens. These screens share `authenticatedRequest`, which retries a 401 once after refreshing Supabase Auth. `apps/web/src/auth/api.test.ts` exercises retry and permission denial. Planner, logging, progress, settings and exercise data still use the existing direct data routes. The preview database connection and real role accounts remain unverified, so the candidate does not count as FE-01, FE-02, or FE-08–FE-11 compliance.

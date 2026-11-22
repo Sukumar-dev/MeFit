@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Activity, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { apiUrl } from '../auth/api'
-import { getProfileSession, getSupabaseClient, useSupabaseAuth } from '../auth/supabase'
+import { getProfileSession, readFitnessProfile, saveFitnessProfile, useSupabaseAuth } from '../auth/supabase'
 
 const profileSaveTimeoutMs = 60_000
 
@@ -34,13 +34,11 @@ export function ProfilePage() {
   }, [session?.accessToken, session?.user.hasProfile, supabaseId])
 
   useEffect(() => {
-    if (!supabaseId) return
+    if (!supabaseId || !session) return
     const controller = new AbortController()
-    void getSupabaseClient().from('profiles').select('*').eq('id', supabaseId)
-      .abortSignal(controller.signal).maybeSingle().then(({ data, error }) => {
+    void readFitnessProfile(session, controller.signal).then((data) => {
         if (controller.signal.aborted) return
-        if (error) setError('Your profile could not be loaded. Please reload and try again.')
-        else if (data) setForm((previous) => ({
+        if (data) setForm((previous) => ({
           ...previous,
           display_name: data.display_name || previous.display_name,
           profile_image_url: data.avatar_url ?? '',
@@ -52,8 +50,8 @@ export function ProfilePage() {
           activity_level: data.current_activity,
           experience: data.experience,
         }))
-        setLoadingProfile(false)
-      })
+      }).catch(() => { if (!controller.signal.aborted) setError('Your profile could not be loaded. Please reload and try again.') })
+      .finally(() => { if (!controller.signal.aborted) setLoadingProfile(false) })
     return () => controller.abort()
   }, [supabaseId])
 
@@ -72,15 +70,13 @@ export function ProfilePage() {
       if (supabaseId) {
         const displayName = form.display_name.trim()
         if (!displayName) throw new Error('Enter a display name before saving.')
-        const { error } = await getSupabaseClient().from('profiles').upsert({
-          id: supabaseId, display_name: displayName, avatar_url: form.profile_image_url || null,
+        await saveFitnessProfile(activeSession, { display_name: displayName, avatar_url: form.profile_image_url || null,
           height_cm: form.height_cm ? Number(form.height_cm) : null,
           weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
           timezone: form.timezone, days_available: Number(form.days_available),
           minutes_per_workout: Number(form.minutes_per_session),
           current_activity: form.activity_level, experience: form.experience,
         })
-        if (error) throw new Error('Your profile could not be saved. Please check your entries and try again.')
         setSession({ ...activeSession, user: { ...activeSession.user, displayName, hasProfile: true } })
         setDirectSaved(true)
         return

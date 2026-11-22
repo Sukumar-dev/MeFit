@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, Check, ShieldCheck, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { apiUrl } from '../auth/api'
+import { authenticatedRequest } from '../auth/api'
 
 type RequestItem = { id: string; message: string | null; created_at: string; user: { id: string; email: string; displayName: string } }
 type UserItem = { id: string; email: string; display_name: string; roles: string[]; disabled: boolean; fitness_level: string | null }
@@ -19,10 +19,9 @@ export function AdminPage() {
   const load = useCallback(async () => {
     if (!session) return
     try {
-      const headers = { Authorization: `Bearer ${session.accessToken}`, Accept: 'application/json' }
       const [r, u] = await Promise.all([
-        fetch(`${apiUrl}/admin/contributor-requests`, { headers }).then(async (response) => { const result = await response.json() as { requests?: RequestItem[]; error?: { message?: string } }; if (!response.ok) throw new Error(result.error?.message ?? 'Could not load requests.'); return result }),
-        fetch(`${apiUrl}/admin/users`, { headers }).then(async (response) => { const result = await response.json() as { users?: UserItem[]; error?: { message?: string } }; if (!response.ok) throw new Error(result.error?.message ?? 'Could not load accounts.'); return result }),
+        authenticatedRequest(`/admin/contributor-requests`, session).then(async (response) => { const result = await response.json() as { requests?: RequestItem[]; error?: { message?: string } }; if (!response.ok) throw new Error(result.error?.message ?? 'Could not load requests.'); return result }),
+        authenticatedRequest(`/admin/users`, session).then(async (response) => { const result = await response.json() as { users?: UserItem[]; error?: { message?: string } }; if (!response.ok) throw new Error(result.error?.message ?? 'Could not load accounts.'); return result }),
       ])
       setRequests(r.requests ?? []); setUsers(u.users ?? [])
       setSelected(Object.fromEntries((u.users ?? []).map((user) => [user.id, user.roles])))
@@ -35,7 +34,7 @@ export function AdminPage() {
     if (!session) return
     setPending(item.id); setError(null); setMessage(null)
     try {
-      const response = await fetch(`${apiUrl}/admin/contributor-requests/${item.id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ status }) })
+      const response = await authenticatedRequest(`/admin/contributor-requests/${item.id}`, session, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
       const result = await response.json() as { error?: { message?: string } }
       if (!response.ok) throw new Error(result.error?.message ?? 'The request could not be reviewed.')
       setMessage(`Contributor request ${status.toLowerCase()}.`); await load()
@@ -47,7 +46,7 @@ export function AdminPage() {
     if (!session) return
     setPending(user.id); setError(null); setMessage(null)
     try {
-      const response = await fetch(`${apiUrl}/admin/user/${user.id}/roles`, { method: 'PATCH', headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ roles: selected[user.id] ?? ['USER'] }) })
+      const response = await authenticatedRequest(`/admin/user/${user.id}/roles`, session, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roles: selected[user.id] ?? ['USER'] }) })
       const result = await response.json() as { error?: { message?: string } }
       if (!response.ok) throw new Error(result.error?.message ?? 'Roles could not be updated.')
       setMessage(`Roles updated for ${user.email}.`); await load()

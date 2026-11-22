@@ -1,3 +1,4 @@
+import { srsApiUrl } from '../auth/api'
 import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Activity, CalendarDays, ChartNoAxesCombined, Dumbbell, House, LogOut, Settings, Timer, X, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -54,7 +55,7 @@ export function Drawer({ title, close, children }: { title: string; close: () =>
 
 const nav = [['Dashboard', '/', House], ['Planner', '/#planner', CalendarDays], ['Library', '/catalog', Dumbbell], ['Logging', '/#logging', Timer], ['Progress', '/#progress', ChartNoAxesCombined], ['Settings', '/#settings', Settings]] as const
 
-export function WorkspaceNav({ name, signOut }: { name: string; signOut: () => void }) {
+export function WorkspaceNav({ name, roles, signOut }: { name: string; roles: string[]; signOut: () => void }) {
   const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || 'M'
   return <>
     <header className="sticky top-0 z-30 border-b border-[var(--mf-border)] bg-[var(--mf-card)]">
@@ -62,7 +63,7 @@ export function WorkspaceNav({ name, signOut }: { name: string; signOut: () => v
         <Link to="/" className="flex items-center gap-2 text-xl font-bold"><span className="grid size-9 place-items-center rounded-xl bg-[#075343] text-white"><Activity aria-hidden size={19} /></span>MeFit</Link>
         <nav aria-label="Fitness workspace" className="mf-nav hidden gap-1 text-sm font-semibold lg:flex">{nav.map(([label, href, Icon]) => <Link key={label} to={href}><Icon aria-hidden size={17} />{label}</Link>)}</nav>
         <details className="relative"><summary className="grid size-11 cursor-pointer list-none place-items-center rounded-full bg-[var(--mf-mint)] text-sm font-bold text-[var(--mf-green)]" aria-label="Account menu">{initials}</summary>
-          <div className="mf-card absolute top-full right-0 mt-2 grid min-w-40 gap-1 p-2"><Link to="/#settings" className="mf-button mf-button-ghost">Settings</Link><Button variant="ghost" onClick={signOut}><LogOut aria-hidden size={17} />Sign out</Button></div>
+          <div className="mf-card absolute top-full right-0 mt-2 grid min-w-40 gap-1 p-2"><Link to="/#settings" className="mf-button mf-button-ghost">Settings</Link>{srsApiUrl && (roles.includes('CONTRIBUTOR') || roles.includes('ADMIN')) && <Link to="/contribute" className="mf-button mf-button-ghost">Contributors area</Link>}{srsApiUrl && roles.includes('ADMIN') && <Link to="/admin" className="mf-button mf-button-ghost">Administration</Link>}<Button variant="ghost" onClick={signOut}><LogOut aria-hidden size={17} />Sign out</Button></div>
         </details>
       </div>
     </header>
