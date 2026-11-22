@@ -110,7 +110,7 @@ export function FitnessWorkspace() {
     <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5">
       <Link to="/" className="text-xl font-bold">MeFit</Link>
       <nav aria-label="Fitness workspace" className="flex flex-wrap gap-4">
-        <a href="#planner">Planner</a><a href="#library">Library</a><a href="#logging">Logging</a><a href="#progress">Progress</a><a href="#settings">Settings</a>
+        <a href="#planner">Planner</a><Link to="/catalog">Library</Link><a href="#logging">Logging</a><a href="#progress">Progress</a><a href="#settings">Settings</a>
       </nav>
       <button className={button} onClick={() => void logout().catch(() => setActionError('Could not sign out. Please try again.'))}>Sign out</button>
     </header>
@@ -148,6 +148,7 @@ export function FitnessWorkspace() {
           </div>)}
         </Panel></div>
         <div id="library"><Panel title="Exercise library">
+          <Link to="/catalog" className="inline-flex min-h-11 items-center font-semibold text-emerald-900 underline">Browse illustrated exercises</Link>
           <div className="flex flex-wrap gap-3"><label>Search <input className={field} value={search} onChange={(event) => setSearch(event.target.value)} /></label>
           <label>Equipment <select className={field} value={equipment} onChange={(event) => setEquipment(event.target.value)}><option value="">All</option>{[...new Set(library.map((item) => item.equipment))].map((value) => <option key={value}>{value}</option>)}</select></label>
           <label>Muscle group <select className={field} value={muscle} onChange={(event) => setMuscle(event.target.value)}><option value="">All</option>{[...new Set(library.map((item) => item.muscle_group))].map((value) => <option key={value}>{value}</option>)}</select></label></div>
@@ -158,8 +159,8 @@ export function FitnessWorkspace() {
             const input = form(event)
             void save(() => db.from('workout_logs').insert({ exercise: String(input.get('exercise')), performed_on: dateKey(new Date()), sets: Number(input.get('sets')), reps: Number(input.get('reps')), weight_kg: Number(input.get('weight')) / (pounds ? 2.2046226218 : 1), duration_seconds: Number(input.get('duration')) }))
           }}>
-            <label>Exercise <select className={field} name="exercise" required>{library.map((item) => <option key={item.name}>{item.name}</option>)}</select></label>
-            <label>Sets <input className={field} name="sets" type="number" min="1" defaultValue="3" required /></label><label>Reps <input className={field} name="reps" type="number" min="0" defaultValue="8" required /></label><label>Weight ({pounds ? 'lb' : 'kg'}) <input className={field} name="weight" type="number" min="0" step="any" defaultValue="0" /></label><label>Seconds <input className={field} name="duration" type="number" min="0" defaultValue="0" /></label><button className={button} disabled={pending || !library.length}>Log exercise</button>
+            <label>Exercise <select className={field} name="exercise" required>{(data.exerciseNames).map((name) => <option key={name}>{name}</option>)}</select></label>
+            <label>Sets <input className={field} name="sets" type="number" min="1" defaultValue="3" required /></label><label>Reps <input className={field} name="reps" type="number" min="0" defaultValue="8" required /></label><label>Weight ({pounds ? 'lb' : 'kg'}) <input className={field} name="weight" type="number" min="0" step="any" defaultValue="0" /></label><label>Seconds <input className={field} name="duration" type="number" min="0" defaultValue="0" /></label><button className={button} disabled={pending || !data.exerciseNames.length}>Log exercise</button>
           </form>
           <button className={button} onClick={() => setRestUntil(Date.now() + 60_000)}>Start 60-second rest</button> <span role="timer" aria-label="Rest timer">{seconds}s</span>
           {!data.logs.length && <p>No workouts logged yet.</p>}
@@ -181,13 +182,18 @@ export function FitnessWorkspace() {
 
 async function load(first: string, last: string, signal: AbortSignal) {
   const db = getSupabaseClient()
-  const [workouts, exercises, logs, settings, progress] = await Promise.all([
+  const [workouts, exercises, logs, settings, progress, catalog] = await Promise.all([
     db.from('weekly_workouts').select('*').gte('workout_date', first).lte('workout_date', last).order('workout_date').abortSignal(signal),
     db.from('fitness_exercises').select('*').order('name').abortSignal(signal),
     db.from('workout_logs').select('*').order('performed_on', { ascending: false }).limit(30).abortSignal(signal),
     db.from('fitness_settings').select('weight_unit').abortSignal(signal).maybeSingle(),
     db.from('fitness_progress').select('*').order('measured_on', { ascending: false }).limit(30).abortSignal(signal),
+    db.from('exercise_library').select('name,legacy_names').abortSignal(signal),
   ])
   if (workouts.error || exercises.error || logs.error || progress.error || settings.error) throw new Error('Could not load fitness data')
-  return { workouts: workouts.data, exercises: exercises.data, logs: logs.data, progress: progress.data, settings: settings.data }
+  const exerciseNames = [...new Set([
+    ...exercises.data.map(({ name }) => name),
+    ...(catalog.data ?? []).map(({ name, legacy_names }) => legacy_names[0] || name),
+  ])].sort((a, b) => a.localeCompare(b))
+  return { workouts: workouts.data, exercises: exercises.data, exerciseNames, logs: logs.data, progress: progress.data, settings: settings.data }
 }
