@@ -9,7 +9,7 @@ services:
     dockerContext: .
     healthCheckPath: /ready
     # Check the database target and use the existing schema without running migrations.
-    dockerCommand: /bin/sh -c "node scripts/check-production-database.mjs && npm --workspace apps/api run start"
+    dockerCommand: /bin/sh scripts/start-supabase-production-api.sh
     envVars:
       - key: NODE_ENV
         value: production
