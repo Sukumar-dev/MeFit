@@ -109,4 +109,25 @@ try {
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width)
    console.log('Passed single-page layout at '+width+'×'+height)
  }
+ const workspaceNav = page.getByRole('navigation', {name:'Fitness workspace', exact:true})
+ const accountMenu = page.getByLabel('Account menu')
+ const settingsHeading = page.getByRole('heading', {name:'Settings', exact:true})
+ for (const home of [page.getByRole('link', {name:'MeFit', exact:true}), workspaceNav.getByRole('link', {name:'Dashboard'})]) {
+   await page.evaluate(() => window.scrollTo(0, 700))
+   await home.click()
+   await page.waitForFunction(() => window.scrollY === 0)
+ }
+ const accountSettings = page.locator('details').filter({has:accountMenu}).getByRole('link', {name:'Settings', exact:true})
+ for (let attempt = 0; attempt < 2; attempt++) {
+   await page.evaluate(() => window.scrollTo(0, 0))
+   await accountMenu.click()
+   await accountSettings.click()
+   await settingsHeading.waitFor()
+   await page.waitForFunction(() => {
+     const bounds = document.getElementById('settings')?.getBoundingClientRect()
+     return location.hash === '#settings' && bounds && bounds.top >= 64 && bounds.top < innerHeight
+   })
+   assert.equal(await accountSettings.isVisible(), false)
+ }
+ console.log('Logo and Dashboard return to the top; account Settings scrolls on repeat visits and closes the menu.')
 } finally { await browser.close() }
