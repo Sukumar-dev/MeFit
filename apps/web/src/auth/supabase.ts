@@ -1,3 +1,4 @@
+import type { Exercise } from '../pages/exerciseFilters'
 import { createClient, type Session as SupabaseSession } from '@supabase/supabase-js'
 import type { AppSession } from './session'
 
@@ -39,6 +40,8 @@ type Database = {
     Tables: {
       profiles: Table<ProfileRow>
       weekly_workouts: Table<Owned & { workout_date: string; title: string; completed: boolean }>
+      exercise_library: Table<Exercise>
+      user_favorites: Table<{ user_id: string; exercise_id: string }>
       fitness_exercises: Table<{ name: string; muscle_group: string; equipment: string }>
       workout_logs: Table<Owned & { exercise: string; performed_on: string; sets: number; reps: number; weight_kg: number; duration_seconds: number }>
       fitness_settings: Table<{ user_id: string; weight_unit: 'kg' | 'lb' }>

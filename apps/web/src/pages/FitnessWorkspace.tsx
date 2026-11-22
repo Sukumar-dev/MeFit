@@ -32,9 +32,6 @@ export function FitnessWorkspace() {
   const [loadError, setLoadError] = useState(false)
   const [actionError, setActionError] = useState('')
   const [pending, setPending] = useState(false)
-  const [search, setSearch] = useState('')
-  const [equipment, setEquipment] = useState('')
-  const [muscle, setMuscle] = useState('')
   const [restUntil, setRestUntil] = useState(0)
   const [seconds, setSeconds] = useState(0)
   const pounds = data?.settings?.weight_unit === 'lb'
@@ -90,7 +87,7 @@ export function FitnessWorkspace() {
     <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5">
       <Link to="/" className="text-xl font-bold">MeFit</Link>
       <nav aria-label="Fitness workspace" className="flex flex-wrap gap-4">
-        <a href="#planner">Planner</a><a href="#library">Library</a><a href="#logging">Logging</a><a href="#progress">Progress</a><a href="#settings">Settings</a>
+        <a href="#planner">Planner</a><Link to="/catalog">Library</Link><a href="#logging">Logging</a><a href="#progress">Progress</a><a href="#settings">Settings</a>
       </nav>
       <button className={button} onClick={() => void logout().catch(() => setActionError('Could not sign out. Please try again.'))}>Sign out</button>
     </header>
@@ -127,12 +124,6 @@ export function FitnessWorkspace() {
             {!workouts.some((item) => item.workout_date === dateKey(day)) && <p>Rest day</p>}
           </div>)}
         </Panel></div>
-        <div id="library"><Panel title="Exercise library">
-          <div className="flex flex-wrap gap-3"><label>Search <input className={field} value={search} onChange={(event) => setSearch(event.target.value)} /></label>
-          <label>Equipment <select className={field} value={equipment} onChange={(event) => setEquipment(event.target.value)}><option value="">All</option>{[...new Set(library.map((item) => item.equipment))].map((value) => <option key={value}>{value}</option>)}</select></label>
-          <label>Muscle group <select className={field} value={muscle} onChange={(event) => setMuscle(event.target.value)}><option value="">All</option>{[...new Set(library.map((item) => item.muscle_group))].map((value) => <option key={value}>{value}</option>)}</select></label></div>
-          {library.filter((item) => item.name.toLowerCase().includes(search.trim().toLowerCase()) && (!equipment || item.equipment === equipment) && (!muscle || item.muscle_group === muscle)).map((item) => <div key={item.name}>{item.name} · {item.muscle_group} · {item.equipment}</div>)}
-        </Panel></div>
         <div id="logging"><Panel title="Workout log">
           <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => {
             const input = form(event)
@@ -161,13 +152,17 @@ export function FitnessWorkspace() {
 
 async function load(first: string, last: string, signal: AbortSignal) {
   const db = getSupabaseClient()
-  const [workouts, exercises, logs, settings, progress] = await Promise.all([
+  const [workouts, exercises, logs, settings, progress, enriched] = await Promise.all([
     db.from('weekly_workouts').select('*').gte('workout_date', first).lte('workout_date', last).order('workout_date').abortSignal(signal),
     db.from('fitness_exercises').select('*').order('name').abortSignal(signal),
     db.from('workout_logs').select('*').order('performed_on', { ascending: false }).limit(30).abortSignal(signal),
     db.from('fitness_settings').select('weight_unit').abortSignal(signal).maybeSingle(),
     db.from('fitness_progress').select('*').order('measured_on', { ascending: false }).limit(30).abortSignal(signal),
+    db.from('exercise_library').select('name,legacy_names').order('name').abortSignal(signal),
   ])
   if (workouts.error || exercises.error || logs.error || progress.error || settings.error) throw new Error('Could not load fitness data')
-  return { workouts: workouts.data, exercises: exercises.data, logs: logs.data, progress: progress.data, settings: settings.data }
+  const names = new Set(exercises.data.map((item) => item.name))
+  for (const entry of enriched.data ?? []) names.add(entry.legacy_names[0] || entry.name)
+  const exerciseOptions = [...names].sort((left, right) => left.localeCompare(right)).map((name) => ({ name }))
+  return { workouts: workouts.data, exercises: exerciseOptions, logs: logs.data, progress: progress.data, settings: settings.data }
 }

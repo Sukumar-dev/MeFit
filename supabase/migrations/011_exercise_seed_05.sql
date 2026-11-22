@@ -1,0 +1,30 @@
+BEGIN;
+INSERT INTO public.exercise_library (id, name, slug, body_area, movement_type, equipment, level, primary_muscles, secondary_muscles, instructions, image_paths, legacy_names) VALUES
+  ('legacy-reverse-lunge', 'Reverse lunge', 'legacy-reverse-lunge', 'Legs & Glutes', 'Squat', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Reverse lunge']::text[]),
+  ('legacy-forward-lunge', 'Forward lunge', 'legacy-forward-lunge', 'Legs & Glutes', 'Squat', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Forward lunge']::text[]),
+  ('legacy-lateral-lunge', 'Lateral lunge', 'legacy-lateral-lunge', 'Legs & Glutes', 'Squat', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Lateral lunge']::text[]),
+  ('legacy-calf-raise', 'Calf raise', 'legacy-calf-raise', 'Legs & Glutes', 'Squat', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Calf raise']::text[]),
+  ('legacy-wall-sit', 'Wall sit', 'legacy-wall-sit', 'Legs & Glutes', 'Squat', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Wall sit']::text[]),
+  ('legacy-step-up', 'Step-up', 'legacy-step-up', 'Legs & Glutes', 'Squat', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Step-up']::text[]),
+  ('legacy-goblet-squat', 'Goblet squat', 'legacy-goblet-squat', 'Legs & Glutes', 'Squat', ARRAY['Dumbbell']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Goblet squat']::text[]),
+  ('legacy-romanian-deadlift', 'Romanian deadlift', 'legacy-romanian-deadlift', 'Legs & Glutes', 'Squat', ARRAY['Dumbbell']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Romanian deadlift']::text[]),
+  ('legacy-wall-push-up', 'Wall push-up', 'legacy-wall-push-up', 'Chest', 'Push', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Wall push-up']::text[]),
+  ('legacy-decline-push-up', 'Decline push-up', 'legacy-decline-push-up', 'Chest', 'Push', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Decline push-up']::text[]),
+  ('legacy-pike-push-up', 'Pike push-up', 'legacy-pike-push-up', 'Chest', 'Push', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Pike push-up']::text[]),
+  ('legacy-bent-over-row', 'Bent-over row', 'legacy-bent-over-row', 'Back', 'Pull', ARRAY['Dumbbell']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Bent-over row']::text[]),
+  ('legacy-band-row', 'Band row', 'legacy-band-row', 'Back', 'Pull', ARRAY['Band']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Band row']::text[]),
+  ('legacy-band-face-pull', 'Band face pull', 'legacy-band-face-pull', 'Back', 'Pull', ARRAY['Band']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Band face pull']::text[]),
+  ('legacy-band-curl', 'Band curl', 'legacy-band-curl', 'Back', 'Pull', ARRAY['Band']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Band curl']::text[]),
+  ('legacy-band-lat-pulldown', 'Band lat pulldown', 'legacy-band-lat-pulldown', 'Back', 'Pull', ARRAY['Band']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Band lat pulldown']::text[]),
+  ('legacy-bird-dog', 'Bird dog', 'legacy-bird-dog', 'Core', 'Core', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Bird dog']::text[]),
+  ('legacy-side-plank', 'Side plank', 'legacy-side-plank', 'Core', 'Core', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Side plank']::text[]),
+  ('legacy-bicycle-crunch', 'Bicycle crunch', 'legacy-bicycle-crunch', 'Core', 'Core', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Bicycle crunch']::text[]),
+  ('legacy-hollow-hold', 'Hollow hold', 'legacy-hollow-hold', 'Core', 'Core', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Hollow hold']::text[]),
+  ('legacy-heel-tap', 'Heel tap', 'legacy-heel-tap', 'Core', 'Core', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Heel tap']::text[]),
+  ('legacy-bear-crawl', 'Bear crawl', 'legacy-bear-crawl', 'Core', 'Core', ARRAY['Bodyweight']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Bear crawl']::text[]),
+  ('legacy-suitcase-carry', 'Suitcase carry', 'legacy-suitcase-carry', 'Core', 'Core', ARRAY['Dumbbell']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Suitcase carry']::text[]),
+  ('legacy-weighted-dead-bug', 'Weighted dead bug', 'legacy-weighted-dead-bug', 'Core', 'Core', ARRAY['Dumbbell']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Weighted dead bug']::text[]),
+  ('legacy-pallof-press', 'Pallof press', 'legacy-pallof-press', 'Core', 'Core', ARRAY['Band']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Pallof press']::text[]),
+  ('legacy-band-wood-chop', 'Band wood chop', 'legacy-band-wood-chop', 'Core', 'Core', ARRAY['Band']::text[], 'Beginner', ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY[]::text[], ARRAY['Band wood chop']::text[])
+ON CONFLICT (id) DO NOTHING;
+COMMIT;

@@ -11,6 +11,8 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({
 
 const FitnessWorkspace = lazy(() => import('./pages/FitnessWorkspace').then((module) => ({ default: module.FitnessWorkspace })))
 
+const ExerciseLibraryPage = lazy(() => import('./pages/ExerciseLibraryPage').then(({ ExerciseLibraryPage }) => ({ default: ExerciseLibraryPage })))
+
 function StartPage() {
   const { session, authReady } = useAuth()
   if (!authReady) return <main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600" role="status">Restoring your session…</main>
@@ -32,7 +34,7 @@ function AppRoutes() {
       <Route path="/auth/link/callback" element={<Navigate to="/login" replace />} />
       <Route element={<RequireAuth />}>
         <Route path="/profile/setup" element={<ProfilePage />} />
-        <Route path="/catalog" element={<Navigate to="/#library" replace />} />
+        <Route path="/catalog" element={<ExerciseLibraryPage />} />
         <Route path="/goals" element={<Navigate to="/#planner" replace />} />
         <Route path="/admin" element={<Navigate to="/#settings" replace />} />
         <Route path="/contribute" element={<Navigate to="/#settings" replace />} />
