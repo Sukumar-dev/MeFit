@@ -132,6 +132,7 @@ export function ExerciseLibraryPage() {
   return <main className="min-h-screen bg-[#f3f7f5] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
     <div className="mx-auto max-w-7xl space-y-5 px-5 py-8 sm:px-8">
       <Link to="/" className="inline-flex min-h-11 items-center gap-2 font-semibold text-teal-800 dark:text-teal-200"><ArrowLeft size={18} aria-hidden /> Dashboard</Link>
+      <nav aria-label="Training library" className="flex flex-wrap gap-3 text-sm font-semibold"><Link className="underline" to="/programs">Programs</Link><Link className="underline" to="/workouts">Workouts</Link></nav>
       <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Exercise library</h1>
       <label className="relative block max-w-xl"><span className="sr-only">Search by exercise or muscle</span><Search aria-hidden className="absolute left-3 top-3 size-5" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises or muscles" className={field + ' w-full pl-10'} /></label>
       <div role="group" aria-label="Body area" className="flex gap-2 overflow-x-auto pb-2">

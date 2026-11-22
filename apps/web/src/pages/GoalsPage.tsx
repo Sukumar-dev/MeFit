@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ArrowLeft, CalendarDays, CheckCircle2, CirclePause, CirclePlay, Pencil, Plus, Save, Target, Trash2, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { apiUrl } from '../auth/api'
+import { authenticatedRequest } from '../auth/api'
 
 type PlanItem = { id: string; name: string; type?: string; description: string; _count?: { workouts?: number; exercises?: number } }
 type WorkoutPlan = { id: string; name: string; type: string; prescription: unknown; completed_at: string | null }
@@ -39,9 +39,8 @@ export function GoalsPage() {
     if (!session) return
     setLoading(true)
     try {
-      const headers = { Authorization: `Bearer ${session.accessToken}`, Accept: 'application/json' }
       const [programResponse, workoutResponse, goalResponse] = await Promise.all([
-        fetch(`${apiUrl}/programs`, { headers }), fetch(`${apiUrl}/workouts`, { headers }), fetch(`${apiUrl}/goal`, { headers }),
+        authenticatedRequest(`/programs`, session), authenticatedRequest(`/workouts`, session), authenticatedRequest(`/goal`, session),
       ])
       const [programData, workoutData, goalData] = await Promise.all([
         programResponse.json() as Promise<{ groups?: Array<{ programs: PlanItem[] }> }>,
@@ -74,9 +73,9 @@ export function GoalsPage() {
     if (!session) return
     setPending('save'); setError(null); setSuccess(null)
     const method = editingId ? 'PATCH' : 'POST'
-    const url = editingId ? `${apiUrl}/goal/${editingId}` : `${apiUrl}/goal`
+    const url = editingId ? `/goal/${editingId}` : '/goal'
     try {
-      const response = await fetch(url, { method, headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(draft) })
+      const response = await authenticatedRequest(url, session, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) })
       const result = await response.json() as ApiError
       if (!response.ok) throw new Error(result.error?.message ?? 'Your goal could not be saved.')
       setSuccess(editingId ? 'Your goal has been updated.' : 'Your goal has been created.')
@@ -90,7 +89,7 @@ export function GoalsPage() {
     if (!session) return
     setPending(goal.id); setError(null); setSuccess(null)
     try {
-      const response = await fetch(`${apiUrl}/goal/${goal.id}/status`, { method: 'PATCH', headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ status }) })
+      const response = await authenticatedRequest(`/goal/${goal.id}/status`, session, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
       const result = await response.json() as ApiError
       if (!response.ok) throw new Error(result.error?.message ?? 'The goal status could not be changed.')
       setSuccess(`Goal marked ${status.toLowerCase()}.`)
@@ -103,7 +102,7 @@ export function GoalsPage() {
     if (!session || !window.confirm(`Delete “${goal.name}”? Its workout completion history will also be removed.`)) return
     setPending(goal.id); setError(null); setSuccess(null)
     try {
-      const response = await fetch(`${apiUrl}/goal/${goal.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session.accessToken}`, Accept: 'application/json' } })
+      const response = await authenticatedRequest(`/goal/${goal.id}`, session, { method: 'DELETE' })
       const result = response.status === 204 ? {} : await response.json() as ApiError
       if (!response.ok) throw new Error(result.error?.message ?? 'The goal could not be deleted.')
       setSuccess('Your goal has been deleted.')
@@ -117,7 +116,7 @@ export function GoalsPage() {
     const key = `${goal.id}:${workout.id}`
     setPending(key); setError(null); setSuccess(null)
     try {
-      const response = await fetch(`${apiUrl}/goal/${goal.id}/workouts/${workout.id}/complete`, { method: 'POST', headers: { Authorization: `Bearer ${session.accessToken}`, Accept: 'application/json' } })
+      const response = await authenticatedRequest(`/goal/${goal.id}/workouts/${workout.id}/complete`, session, { method: 'POST' })
       const result = response.status === 204 ? {} : await response.json() as ApiError
       if (!response.ok) throw new Error(result.error?.message ?? 'The workout could not be marked complete.')
       setSuccess('Workout completion saved.')

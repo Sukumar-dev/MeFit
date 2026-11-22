@@ -109,4 +109,17 @@ try {
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width)
    console.log('Passed single-page layout at '+width+'×'+height)
  }
+ await page.goto(frontend + '/programs')
+ await page.getByRole('heading',{name:'Beginner',exact:true}).waitFor()
+ await page.getByRole('link',{name:/Getting started/i}).click()
+ await page.getByRole('heading',{name:'Getting started',exact:true}).waitFor()
+ await page.getByRole('link',{name:'Easy movement circuit'}).click()
+ await page.getByRole('heading',{name:'Easy movement circuit'}).waitFor()
+ await page.getByRole('heading',{name:'March in place'}).waitFor()
+ assert.equal(await page.getByRole('img',{name:'March in place'}).getAttribute('src'),'/images/exercises/march-in-place.webp')
+ await page.getByRole('link',{name:'Workouts',exact:true}).click()
+ await page.getByRole('heading',{name:'Low impact',exact:true}).waitFor()
+ await page.getByRole('link',{name:'Exercises',exact:true}).click()
+ await page.getByRole('heading',{name:'Exercise library',exact:true}).waitFor()
+ console.log('FE-05 through FE-07 program groups, workout details and exercise navigation passed with isolated fixture data.')
 } finally { await browser.close() }

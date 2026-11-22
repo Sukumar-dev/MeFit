@@ -14,6 +14,7 @@ export const routes = [
   ['POST','goal','user'],
   ['PATCH','goal/:id','user'],
   ['DELETE','goal/:id','user'],
+  ['PATCH','goal/:id/status','user'],
   ['POST','goal/:id/workouts/:workout/complete','user'],
   ...['program','workout'].flatMap((name) => [
     ['GET',name,'user',true],

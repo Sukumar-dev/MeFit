@@ -16,6 +16,8 @@ export function FitnessOverview({ name, now, onStart, week, today, workouts, min
 }) {
   const hour = now.getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const todayIndex = week.findIndex((day) => day.key === today)
+  const daysLeft = todayIndex < 0 ? 0 : week.length - todayIndex - 1
   const complete = workouts.filter((workout) => workout.completed).length
   const todayWorkout = workouts.find((workout) => workout.workout_date === today && !workout.completed)
   const finishedToday = workouts.some((workout) => workout.workout_date === today && workout.completed)
@@ -43,7 +45,7 @@ export function FitnessOverview({ name, now, onStart, week, today, workouts, min
           <a href={workouts.length ? '#progress' : '#generate-plan'} className="mf-button mf-button-primary"><Footprints aria-hidden size={18} />{workouts.length ? 'See progress' : 'Generate my weekly plan'}</a>
         </EmptyState>
       </Card>}
-      <Card className="grid content-center justify-items-center gap-3"><h2 className="font-semibold">Weekly progress</h2><ProgressRing complete={complete} total={workouts.length} />
+      <Card className="grid content-center justify-items-center gap-3"><h2 className="font-semibold">Weekly progress</h2><ProgressRing complete={complete} total={workouts.length} /><p className="mf-muted text-sm">{daysLeft === 0 ? 'Last day of this week' : `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left this week`}</p>
         <ul className="grid w-full grid-cols-7 gap-1 text-center">{week.map((day) => {
           const done = workouts.some((item) => item.workout_date === day.key && item.completed)
           return <li key={day.key} aria-current={today === day.key ? 'date' : undefined} className={`grid min-w-0 justify-items-center gap-1 rounded-lg py-2 text-xs ${today === day.key ? 'bg-[var(--mf-mint)] font-bold' : ''}`}><span>{day.label}</span>{done ? <Check size={14} aria-label="Completed" /> : <span>{day.date}</span>}</li>

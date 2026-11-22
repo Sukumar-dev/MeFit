@@ -80,3 +80,15 @@ The route manifest in `server/fitness-contract.mjs` covers 42 method/path combin
 ## Batch 2 browser candidate
 
 When `VITE_SRS_API_URL=/fitness-api` is configured, the candidate uses the separate REST profile adapter for current profile data, retrieves roles from the server, and exposes role-gated contributor and administration screens. These screens share `authenticatedRequest`, which retries a 401 once after refreshing Supabase Auth. `apps/web/src/auth/api.test.ts` exercises retry and permission denial. Planner, logging, progress, settings and exercise data still use the existing direct data routes. The preview database connection and real role accounts remain unverified, so the candidate does not count as FE-01, FE-02, or FE-08–FE-11 compliance.
+
+## Batch 3 goal and catalog candidate
+
+| ID | New evidence | Remaining gap |
+|---|---|---|
+| FE-03 | Dashboard displays the number of calendar days remaining this week. | Production goal details and period-specific progress remain unverified. |
+| FE-04 | Existing goal editor calls the shared authenticated REST client; the optional REST configuration activates the route. | Fitness-based suggestions, realistic-goal rules, full custom exercise composition, and hosted persistence still need completion. |
+| FE-05 | Chromium fixture check opens a program category and follows a workout inside it. | Catalog uses built-in starter templates. Database-authorable program listing and live verification remain pending. |
+| FE-06 | Chromium fixture check opens the workout, verifies the bundled exercise photo, and confirms grouped workout types. | Persisted catalog integration and authenticated live verification remain pending. |
+| FE-07 | Chromium fixture check navigates into the existing illustrated catalog. | Hosted verification and explicit grouped listing remain pending. |
+
+Reproduce by running `node tests/e2e/fitness-workspace-qa.mjs` against the loopback frontend fixture. The REST candidate stays opt-in pending verification; existing production data was not migrated.

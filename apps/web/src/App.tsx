@@ -27,6 +27,9 @@ function RolePage({ admin = false }: { admin?: boolean }) {
   return admin ? <AdminPage /> : <ContributorPage />
 }
 
+const TrainingCatalogPage = lazy(() => import('./pages/TrainingCatalogPage').then(({ TrainingCatalogPage }) => ({ default: TrainingCatalogPage })))
+const GoalsPage = lazy(() => import('./pages/GoalsPage').then(({ GoalsPage }) => ({ default: GoalsPage })))
+
 function StartPage() {
   const { session, authReady } = useAuth()
   if (!authReady) return <main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600" role="status">Restoring your session…</main>
@@ -51,7 +54,9 @@ function AppRoutes() {
         <Route path="/profile/setup" element={<ProfilePage />} />
         <Route path="/catalog" element={<ExerciseLibraryPage />} />
         <Route path="/exercises" element={<ExerciseLibraryPage />} />
-        <Route path="/goals" element={<Navigate to="/#planner" replace />} />
+        <Route path="/goals" element={srsApiUrl ? <GoalsPage /> : <Navigate to="/#planner" replace />} />
+        <Route path="/programs/:id?" element={<TrainingCatalogPage mode="programs" />} />
+        <Route path="/workouts/:id?" element={<TrainingCatalogPage mode="workouts" />} />
         <Route path="/admin" element={<RolePage admin />} />
         <Route path="/contribute" element={<RolePage />} />
       </Route>
