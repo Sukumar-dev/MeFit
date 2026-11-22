@@ -3,16 +3,18 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Activity, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { apiUrl } from '../auth/api'
-import { useSupabaseAuth } from '../auth/supabase'
+import { getProfileSession, useSupabaseAuth } from '../auth/supabase'
 
 const profileSaveTimeoutMs = 60_000
 
 type Evaluation = { score: number; fitness_level: string; suitability_warning: string | null; note: string }
 
 export function ProfilePage() {
-  const { session, setSession } = useAuth()
+  const { session, setSession, logout } = useAuth()
   const navigate = useNavigate()
   const [pending, setPending] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(Boolean(session?.user.hasProfile))
@@ -35,14 +37,26 @@ export function ProfilePage() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!session) return
+    if (!session || signingOut) return
     setPending(true)
     setError(null)
     let fitnessDetailsSaved = false
     try {
-      const response = await fetch(`${apiUrl.replace(/\/$/, '')}/profile`, {
+      let activeSession = await getProfileSession(session)
+      async function sendProfileRequest(path: string, options: RequestInit) {
+        const send = () => fetch(`${apiUrl.replace(/\/$/, '')}${path}`, {
+          ...options,
+          headers: { Authorization: `Bearer ${activeSession.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+          signal: AbortSignal.timeout(profileSaveTimeoutMs),
+        })
+        const response = await send()
+        if (response.status !== 401 || activeSession.authProvider !== 'supabase') return response
+        // Authentication middleware rejects the write before the route can run.
+        activeSession = await getProfileSession(activeSession, true)
+        return send()
+      }
+      const response = await sendProfileRequest('/profile', {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           timezone: form.timezone,
           profile_image_url: form.profile_image_url || null,
@@ -53,15 +67,18 @@ export function ProfilePage() {
           readiness: { days_available: Number(form.days_available), minutes_per_session: Number(form.minutes_per_session), activity_level: form.activity_level, experience: form.experience, limitations: form.limitations },
           ...(form.line1 && form.city && form.country ? { address: { line1: form.line1, city: form.city, country: form.country } } : {}),
         }),
-        signal: AbortSignal.timeout(profileSaveTimeoutMs),
       })
       const result = await response.json() as { evaluation?: Evaluation; error?: { message?: string } }
+      if (response.status === 401) throw new Error('The API could not verify your sign-in. Sign in again. If this persists, contact MeFit support.')
       if (!response.ok || !result.evaluation) throw new Error(result.error?.message ?? 'Your profile could not be saved. Please try again.')
       fitnessDetailsSaved = true
-      const nameResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/user/${session.user.id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ display_name: form.display_name }), signal: AbortSignal.timeout(profileSaveTimeoutMs) })
+      const nameResponse = await sendProfileRequest(`/user/${activeSession.user.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ display_name: form.display_name }),
+      })
       if (!nameResponse.ok) throw new Error('Fitness details were saved, but your display name could not be updated.')
       setEvaluation(result.evaluation)
-      setSession({ ...session, user: { ...session.user, displayName: form.display_name, hasProfile: true } })
+      setSession({ ...activeSession, user: { ...activeSession.user, displayName: form.display_name, hasProfile: true } })
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'TimeoutError') {
         setError(fitnessDetailsSaved
@@ -71,6 +88,17 @@ export function ProfilePage() {
         setError(cause instanceof Error ? cause.message : 'Your profile could not be saved. Please try again.')
       }
     } finally { setPending(false) }
+  }
+
+  async function leaveSetup() {
+    setSignOutError(false)
+    setSigningOut(true)
+    try {
+      await logout()
+    } catch {
+      setSignOutError(true)
+      setSigningOut(false)
+    }
   }
 
   async function deleteProfile() {
@@ -92,7 +120,14 @@ export function ProfilePage() {
   return (
     <main className="min-h-screen bg-[#f3f7f5] px-4 py-8 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-3xl">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 hover:underline"><ArrowLeft size={16} />Back to MeFit</Link>
+        {session?.user.hasProfile ? (
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 hover:underline"><ArrowLeft size={16} />Back to MeFit</Link>
+        ) : (
+          <>
+            <button type="button" disabled={pending || signingOut} onClick={() => void leaveSetup()} className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 hover:underline disabled:opacity-70"><ArrowLeft size={16} />{signingOut ? 'Signing out…' : 'Sign out'}</button>
+            {signOutError && <p role="alert" className="mt-2 text-sm text-rose-800">Could not sign out. Please try again.</p>}
+          </>
+        )}
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
           <div className="flex items-start gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-900"><Activity /></span><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Your starting point</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Set up your fitness profile</h1><p className="mt-2 leading-6 text-slate-600">Tell us what fits your week. You can update these details later.</p></div></div>
           {evaluation ? <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5" role="status"><div className="flex items-center gap-2 font-semibold text-emerald-950"><CheckCircle2 size={19} />Profile saved · {evaluation.fitness_level.toLowerCase()}</div><p className="mt-2 text-sm leading-6 text-emerald-900">Readiness score {evaluation.score}/100. {evaluation.note}</p>{evaluation.suitability_warning && <p className="mt-2 text-sm leading-6 text-amber-900">{evaluation.suitability_warning}</p>}<button type="button" onClick={() => navigate('/', { replace: true })} className="mt-4 min-h-11 rounded-xl bg-emerald-900 px-5 font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Request Contributions</button></div> : loadingProfile ? <div className="mt-8 rounded-xl bg-slate-50 p-6 text-sm text-slate-600" role="status">Loading your saved profile…</div> : <form onSubmit={(event) => void save(event)} className="mt-8 space-y-8">

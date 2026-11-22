@@ -9,6 +9,7 @@ import { fullNameForUser } from './auth/session'
 
 const AuthPage = lazy(() => import('./pages/AuthPage').then((module) => ({ default: module.AuthPage })))
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage').then((module) => ({ default: module.AuthCallbackPage })))
+const AccountLinkPage = lazy(() => import('./pages/AccountLinkPage').then((module) => ({ default: module.AccountLinkPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
 const CatalogPage = lazy(() => import('./pages/CatalogPage').then((module) => ({ default: module.CatalogPage })))
 const GoalsPage = lazy(() => import('./pages/GoalsPage').then((module) => ({ default: module.GoalsPage })))
@@ -89,6 +90,8 @@ function AppRoutes() {
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage initialFlow="register" />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/auth/link" element={<AccountLinkPage />} />
+      <Route path="/auth/link/callback" element={<AccountLinkPage />} />
       <Route element={<RequireAuth />}>
         <Route path="/profile/setup" element={<ProfilePage />} />
         <Route path="/catalog" element={<CatalogPage />} />

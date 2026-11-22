@@ -59,6 +59,32 @@ export async function startSignIn(
   }
 }
 
+export const accountLinkCallbackPath = '/auth/link/callback'
+
+export async function startLegacyAccountLink(supabaseSubject: string) {
+  await waitForKeycloak()
+  const request = await oidcClient.createSigninRequest({
+    redirect_uri: `${window.location.origin}${accountLinkCallbackPath}`,
+    request_type: 'account-link',
+    scope: 'openid mefit-api-audience',
+    nonce: window.crypto.randomUUID(),
+    prompt: 'login',
+    state: { supabaseSubject },
+  })
+  window.location.assign(request.url)
+}
+
+export async function finishLegacyAccountLink(callbackUrl: string, supabaseSubject: string) {
+  const { state } = await oidcClient.readSigninResponseState(callbackUrl)
+  if (state.request_type !== 'account-link' || typeof state.data !== 'object' || !state.data ||
+      !('supabaseSubject' in state.data) || state.data.supabaseSubject !== supabaseSubject) {
+    throw new Error('This sign-in was started for a different session. Start the account link again.')
+  }
+  const result = await oidcClient.processSigninResponse(callbackUrl)
+  if (!result.access_token) throw new Error('Sign in again with your existing MeFit account.')
+  return result.access_token
+}
+
 export async function finishSignIn(): Promise<AppSession> {
   const result = await oidcClient.processSigninResponse(window.location.href)
   if (!result.access_token || !result.id_token) throw new Error('The identity provider did not return a valid session.')

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Activity, ArrowRight, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { prewarmKeycloakOnce } from '../auth/warmup'
-import { beginMfaChallenge, getSupabaseClient, provisionApiUser, supabaseAuthConfigured, useSupabaseAuth, verifyMfaChallenge, type SupabaseMfaChallenge } from '../auth/supabase'
+import { AccountLinkRequiredError, beginMfaChallenge, getSupabaseClient, provisionApiUser, supabaseAuthConfigured, useSupabaseAuth, verifyMfaChallenge, type SupabaseMfaChallenge } from '../auth/supabase'
 import { MfaStepForm } from '../auth/MfaStepForm'
 
 export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'register' }) {
@@ -99,13 +99,14 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
         })
         if (signUpError) throw signUpError
         if (data.session) {
-          await finishSupabaseSignIn()
+          navigate('/auth/callback', { replace: true })
         } else {
-          setNotice('Check your email for a confirmation link. Once confirmed, you can sign in to MeFit.')
+          setNotice('Check your email for a confirmation link. Open the link to verify your address and set up your authenticator.')
         }
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Authentication could not be completed. Please try again.')
+      if (cause instanceof AccountLinkRequiredError) navigate('/auth/link', { replace: true })
+      else setError(cause instanceof Error ? cause.message : 'Authentication could not be completed. Please try again.')
     } finally {
       setPending(false)
     }
@@ -131,7 +132,8 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
       setSession(await provisionApiUser(verified))
       setMfaChallenge(null)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Two-step verification failed. Please try again.')
+      if (cause instanceof AccountLinkRequiredError) navigate('/auth/link', { replace: true })
+      else setError(cause instanceof Error ? cause.message : 'Two-step verification failed. Please try again.')
     } finally {
       setPending(false)
     }

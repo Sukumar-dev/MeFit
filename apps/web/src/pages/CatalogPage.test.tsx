@@ -33,7 +33,7 @@ function mockFetch() {
 }
 
 function renderCatalog(session: AppSession) {
-  const value: AuthContextValue = { session, setSession: () => undefined, logout: async () => undefined }
+  const value: AuthContextValue = { authReady: true, session, setSession: () => undefined, logout: async () => undefined }
   return render(<MemoryRouter><AuthContext.Provider value={value}><CatalogPage /></AuthContext.Provider></MemoryRouter>)
 }
 
@@ -75,7 +75,7 @@ describe('Movement Library caching', () => {
     const view = renderCatalog(firstSession)
     expect(await screen.findByRole('button', { name: /Starter plan/ })).toBeInTheDocument()
 
-    view.rerender(<MemoryRouter><AuthContext.Provider value={{ session: { ...firstSession, user: { ...firstSession.user } }, setSession: () => undefined, logout: async () => undefined }}><CatalogPage /></AuthContext.Provider></MemoryRouter>)
+    view.rerender(<MemoryRouter><AuthContext.Provider value={{ authReady: true, session: { ...firstSession, user: { ...firstSession.user } }, setSession: () => undefined, logout: async () => undefined }}><CatalogPage /></AuthContext.Provider></MemoryRouter>)
     await new Promise((resolve) => window.setTimeout(resolve, 30))
 
     expect(fetchMock).toHaveBeenCalledTimes(1)

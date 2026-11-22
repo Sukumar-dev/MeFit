@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AuthContext, type AuthContextValue } from './AuthContext'
 import { clearSession, readSession, storeSession, type AppSession } from './session'
 import { apiUrl } from './api'
-import { getSupabaseClient, supabaseAuthConfigured, toAppSession, useSupabaseAuth } from './supabase'
+import { getSupabaseClient, matchesSupabaseAccount, supabaseAuthConfigured, toAppSession, useSupabaseAuth } from './supabase'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<AppSession | null>(() => useSupabaseAuth ? null : readSession())
-  const sessionRef = useRef(session)
+  const [authReady, setAuthReady] = useState(() => !useSupabaseAuth || !supabaseAuthConfigured)
+  const sessionRef = useRef(useSupabaseAuth ? readSession() : session)
 
   useEffect(() => {
     if (!useSupabaseAuth || !supabaseAuthConfigured) return
@@ -15,11 +16,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionRef.current = null
       setSessionState(null)
     }
+    let active = true
     const client = getSupabaseClient()
     void client.auth.getSession().then(({ data }) => {
-      if (!data.session) return
+      if (!active || !data.session || sessionRef.current?.authProvider !== 'supabase') return
       const restored = toAppSession(data.session, sessionRef.current)
-      if (restored.assuranceLevel !== 'aal2') {
+      if (!matchesSupabaseAccount(sessionRef.current, data.session) || restored.assuranceLevel !== 'aal2') {
         clearSession()
         sessionRef.current = null
         setSessionState(null)
@@ -29,18 +31,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       storeSession(restored)
       setSessionState(restored)
     }).catch(() => {
+      if (!active) return
       clearSession()
       sessionRef.current = null
       setSessionState(null)
+    }).finally(() => {
+      if (active) setAuthReady(true)
     })
     const { data: listener } = client.auth.onAuthStateChange((_event, next) => {
       if (!next) {
         clearSession()
+        sessionRef.current = null
         setSessionState(null)
         return
       }
+      // MFA events can arrive before the API has linked the account.
+      if (sessionRef.current?.authProvider !== 'supabase') return
       const refreshed = toAppSession(next, sessionRef.current)
-      if (refreshed.assuranceLevel !== 'aal2') {
+      if (!matchesSupabaseAccount(sessionRef.current, next) || refreshed.assuranceLevel !== 'aal2') {
         clearSession()
         sessionRef.current = null
         setSessionState(null)
@@ -50,7 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       storeSession(refreshed)
       setSessionState(refreshed)
     })
-    return () => listener.subscription.unsubscribe()
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -82,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
   const logout = useCallback(async () => {
     if (useSupabaseAuth && supabaseAuthConfigured) {
-      const { error } = await getSupabaseClient().auth.signOut()
+      const { error } = await getSupabaseClient().auth.signOut({ scope: 'local' })
       if (error) throw error
       clearSession()
       setSessionState(null)
@@ -92,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { endSignInSession } = await import('./oidc')
     await endSignInSession()
   }, [])
-  const value = useMemo<AuthContextValue>(() => ({ session, setSession, logout }), [session, setSession, logout])
+  const value = useMemo<AuthContextValue>(() => ({ session, authReady, setSession, logout }), [session, authReady, setSession, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

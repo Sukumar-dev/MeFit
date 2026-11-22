@@ -3,6 +3,7 @@ import type { AppSession } from './session'
 
 export interface AuthContextValue {
   session: AppSession | null
+  authReady: boolean
   setSession: (session: AppSession) => void
   logout: () => Promise<void>
 }
