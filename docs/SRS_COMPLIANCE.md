@@ -105,3 +105,12 @@ Production remains on the previously audited release. The 33-item matrix records
 - **Live smoke** Public landing, sign-in and registration rendered. Signed-in regular-user, contributor and administrator smoke tests remain blocked because the hosted REST preview has no verified staging database binding or dedicated accounts for those roles.
 
 The Batch 4 preview at commit `430ac15` returned JSON health and passed 46/46 anonymous REST checks. The separate backend suite passed 25/25 against the disposable loopback database. The direct Render HTTPS retry also timed out at 35 seconds. [Verified Vercel preview](https://mefit-fitness-planner-h8ssijw6t-sukumar9.vercel.app/)
+
+## Follow-up against the SITER PDF
+
+Reviewed sections 3.2–3.8 against the 33 matrix IDs. The PDF requires HTTPS-only access and a responsive system. The audit brief adds specific header and performance checks, which remain part of the release criteria.
+
+- **PRF-01** Production Chromium passed 15/15 public layout checks. The landing, sign-in and registration pages had visible headings and no horizontal overflow at 360, 390, 768, 1024 and 1280px. Reproduce with `MEFIT_PUBLIC_URL=<deployment-origin> node tests/e2e/public-responsive.mjs`. Authenticated layouts and axe remain unverified.
+- **FE-01 and accessibility** The candidate gives the sign-in or registration form its top-level heading at every viewport. The previous top-level heading was in a decorative panel hidden on mobile.
+- **SEC-04 and PRF-01** Vercel redirected HTTP to HTTPS with 308 and returned HSTS on its HTTPS landing page. Render redirected HTTP with 301, but direct HTTPS health timed out again. Backend HSTS and authenticated timings remain unverified.
+- **Release** All 38 frontend tests passed and lint and build completed. The REST architecture gap remains. The browser still queries core tables directly and the REST candidate still needs a verified staging database and hosted role tests before migration or promotion. No migrations were added or run in this follow-up.

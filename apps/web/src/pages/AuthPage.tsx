@@ -180,7 +180,7 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
           <div className="relative flex items-center gap-3 text-xl font-semibold"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-lime-300 text-emerald-950"><Activity size={21} /></span>MeFit</div>
           <div className="relative max-w-md">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-lime-200">Small steps. Strong weeks.</p>
-            <h1 className="mt-5 text-5xl font-semibold leading-[1.08] tracking-tight">Make room for a healthier routine.</h1>
+            <p className="mt-5 text-5xl font-semibold leading-[1.08] tracking-tight">Make room for a healthier routine.</p>
             <p className="mt-5 text-lg leading-8 text-emerald-50/75">Plan workouts that fit your week, then track each one as you go.</p>
           </div>
           <p className="relative flex items-center gap-2 text-sm text-emerald-50/80"><ShieldCheck size={17} />Your account is protected with two-step verification.</p>
@@ -189,7 +189,7 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
         <div className="flex min-h-[620px] flex-col justify-center px-7 py-12 sm:px-12 lg:px-16">
           <div className="mb-10 flex items-center gap-3 text-lg font-semibold md:hidden"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-900 text-lime-200"><Activity size={21} /></span>MeFit</div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">{flow === 'login' ? 'Welcome back' : 'Start your routine'}</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{resetMode ? 'Reset your password' : flow === 'login' ? 'Sign in to MeFit' : 'Create your MeFit account'}</h2>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{resetMode ? 'Reset your password' : flow === 'login' ? 'Sign in to MeFit' : 'Create your MeFit account'}</h1>
           <p className="mt-3 leading-7 text-slate-600">{resetMode ? 'We’ll email you a secure password reset link.' : flow === 'login' ? 'Continue to your weekly plan and progress.' : 'Set up your account, then build a plan that works for you.'}</p>
 
           {!supabaseAuthConfigured && useSupabaseAuth && <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900" role="alert">Supabase sign-in is not configured yet. Please contact the site administrator.</div>}
