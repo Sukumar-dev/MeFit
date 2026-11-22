@@ -10,7 +10,6 @@ export const supabaseAuthConfigured = Boolean(supabaseUrl && supabasePublishable
 
 export type SupabaseMfaChallenge = {
   factorId: string
-  challengeId: string
   setup?: { qrCode: string; secret: string }
 }
 
@@ -27,6 +26,7 @@ export function getSupabaseClient() {
 }
 
 export function toAppSession(session: SupabaseSession, previous?: AppSession | null): AppSession {
+  const sameAccount = previous?.authProvider === 'supabase' && readClaims(previous.accessToken)?.sub === session.user.id
   const metadata = session.user.user_metadata ?? {}
   const firstName = typeof metadata.first_name === 'string' ? metadata.first_name : undefined
   const lastName = typeof metadata.last_name === 'string' ? metadata.last_name : undefined
@@ -37,29 +37,32 @@ export function toAppSession(session: SupabaseSession, previous?: AppSession | n
     accessToken: session.access_token,
     expiresAt: (session.expires_at ?? Math.floor(Date.now() / 1000) + session.expires_in) * 1000,
     user: {
-      id: session.user.id,
+      id: sameAccount ? previous.user.id : session.user.id,
       email: session.user.email ?? '',
-      displayName: previous?.authProvider === 'supabase' && previous.user.id === session.user.id
+      displayName: sameAccount
         ? (previous.user.displayName || displayName)
         : displayName,
       firstName,
       lastName,
-      roles: previous?.authProvider === 'supabase' && previous.user.id === session.user.id ? previous.user.roles : [],
-      hasProfile: previous?.authProvider === 'supabase' && previous.user.id === session.user.id ? previous.user.hasProfile : false,
+      roles: sameAccount ? previous.user.roles : [],
+      hasProfile: sameAccount ? previous.user.hasProfile : false,
     },
   }
 }
 
-function readAssuranceLevel(token: string): 'aal1' | 'aal2' {
+function readClaims(token: string): { aal?: unknown; sub?: unknown } | null {
   try {
     const payload = token.split('.')[1]
-    if (!payload) return 'aal1'
+    if (!payload) return null
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
-    const claims = JSON.parse(window.atob(base64)) as { aal?: unknown }
-    return claims.aal === 'aal2' ? 'aal2' : 'aal1'
+    return JSON.parse(window.atob(base64))
   } catch {
-    return 'aal1'
+    return null
   }
+}
+
+function readAssuranceLevel(token: string): 'aal1' | 'aal2' {
+  return readClaims(token)?.aal === 'aal2' ? 'aal2' : 'aal1'
 }
 
 export async function beginMfaChallenge(): Promise<SupabaseMfaStep> {
@@ -88,14 +91,21 @@ export async function beginMfaChallenge(): Promise<SupabaseMfaStep> {
     factorId = data.id
     setup = { qrCode: data.totp.qr_code, secret: data.totp.secret }
   }
-  const { data: challenge, error: challengeError } = await auth.mfa.challenge({ factorId })
-  if (challengeError) throw challengeError
-  return { challenge: { factorId, challengeId: challenge.id, ...(setup ? { setup } : {}) } }
+  return { challenge: { factorId, ...(setup ? { setup } : {}) } }
 }
 
 export async function verifyMfaChallenge(challenge: SupabaseMfaChallenge, code: string): Promise<SupabaseSession> {
   const auth = getSupabaseClient().auth
-  const { error } = await auth.mfa.verify({ factorId: challenge.factorId, challengeId: challenge.challengeId, code: code.trim() })
+  // Create the challenge when the code is submitted, on the device verifying it.
+  const params = { factorId: challenge.factorId, code: code.trim() }
+  let { error } = await auth.mfa.challengeAndVerify(params)
+  if (error?.code === 'mfa_ip_address_mismatch' || error?.code === 'mfa_challenge_expired') {
+    const retry = await auth.mfa.challengeAndVerify(params)
+    error = retry.error
+    if (error?.code === 'mfa_ip_address_mismatch' || error?.code === 'mfa_challenge_expired') {
+      throw new Error('Your network changed or verification expired. Stay on one connection and submit a current code to try again.')
+    }
+  }
   if (error) throw error
   const { data, error: sessionError } = await auth.getSession()
   if (sessionError) throw sessionError
@@ -119,6 +129,7 @@ export async function provisionApiUser(session: SupabaseSession): Promise<AppSes
     ...appSession,
     user: {
       ...appSession.user,
+      id: user.id,
       email: user.email,
       displayName: user.display_name ?? appSession.user.displayName,
       firstName: user.first_name ?? undefined,

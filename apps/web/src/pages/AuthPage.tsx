@@ -99,9 +99,9 @@ export function AuthPage({ initialFlow = 'login' }: { initialFlow?: 'login' | 'r
         })
         if (signUpError) throw signUpError
         if (data.session) {
-          await finishSupabaseSignIn()
+          navigate('/auth/callback', { replace: true })
         } else {
-          setNotice('Check your email for a confirmation link. Once confirmed, you can sign in to MeFit.')
+          setNotice('Check your email for a confirmation link. Open it in this browser to set up your authenticator.')
         }
       }
     } catch (cause) {

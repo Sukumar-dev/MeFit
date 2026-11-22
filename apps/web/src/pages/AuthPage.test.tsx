@@ -17,7 +17,7 @@ describe('authentication retry UI', () => {
     const user = userEvent.setup()
     startSignIn.mockRejectedValueOnce(new Error('Secure sign-in is unavailable.'))
     startSignIn.mockResolvedValueOnce(undefined)
-    const auth = { session: null, setSession: vi.fn(), logout: vi.fn() }
+    const auth = { authReady: true, session: null, setSession: vi.fn(), logout: vi.fn() }
 
     render(<MemoryRouter initialEntries={['/register']}><AuthContext.Provider value={auth}><AuthPage initialFlow="register" /></AuthContext.Provider></MemoryRouter>)
     await user.click(screen.getByRole('button', { name: 'Continue to registration' }))
@@ -35,7 +35,7 @@ describe('authentication retry UI', () => {
       signal = options.signal
       return new Promise<void>(() => undefined)
     })
-    const auth = { session: null, setSession: vi.fn(), logout: vi.fn() }
+    const auth = { authReady: true, session: null, setSession: vi.fn(), logout: vi.fn() }
 
     render(<MemoryRouter><AuthContext.Provider value={auth}><AuthPage /></AuthContext.Provider></MemoryRouter>)
     await user.click(screen.getByRole('button', { name: 'Continue to sign in' }))
