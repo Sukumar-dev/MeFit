@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Activity, ArrowLeft, ArrowRight, Dumbbell, Footprints, Heart, Search, SlidersHorizontal, X } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { getSupabaseClient } from '../auth/supabase'
 import { bodyAreas, equipmentOptions, levels, movements, filterExercises, type Exercise } from './exerciseFilters'
@@ -29,7 +29,10 @@ export function ExerciseLibraryPage() {
   const { session } = useAuth()
   const [params, setParams] = useSearchParams()
   const query = params.get('q') ?? ''
-  const [search, setSearch] = useState(query)
+  const { key: locationKey } = useLocation()
+  const [draft, setDraft] = useState<{ key: string; value: string } | null>(null)
+  const search = draft?.key === locationKey ? draft.value : query
+  const setSearch = (value: string) => setDraft({ key: locationKey, value })
   const [rows, setRows] = useState<Exercise[] | null>(null)
   const [favorites, setFavorites] = useState(new Set<string>())
   const [limit, setLimit] = useState(pageSize)
@@ -57,8 +60,8 @@ export function ExerciseLibraryPage() {
   }, [db, attempt, userId])
 
   useEffect(() => {
+    if (query === search) return
     const timer = window.setTimeout(() => {
-      if (query === search) return
       setParams((previous) => {
         const next = new URLSearchParams(previous)
         if (search) next.set('q', search)

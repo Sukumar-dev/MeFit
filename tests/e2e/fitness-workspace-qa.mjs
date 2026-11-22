@@ -81,17 +81,29 @@ try {
  await page.goto(frontend+'/#settings')
  await Promise.all([
    page.waitForResponse(response=>response.request().method()==='POST' && response.url().includes('/fitness_settings')),
-   page.getByLabel('Weight units').selectOption('lb'),
+   (async () => { await page.getByLabel('Weight units').selectOption('lb'); await page.getByRole('button',{name:'Save settings'}).click() })(),
  ])
  await page.goto(frontend+'/#progress')
  const poundWeight=page.getByLabel('Body weight (lb)')
  assert.equal(Number(await poundWeight.getAttribute('min')),25*2.2046226218)
  assert.equal(Number(await poundWeight.getAttribute('max')),350*2.2046226218)
  console.log('Rapid submits produce one write and pound bounds match database limits.')
+ await page.goto(frontend+'/catalog?q=squat')
+ await page.getByText('1 exercise',{exact:true}).waitFor()
+ await page.getByRole('button',{name:'Legs & Glutes',exact:true}).click()
+ await page.waitForURL(url=>url.searchParams.get('area')==='Legs & Glutes')
+ await page.getByRole('searchbox').press('ControlOrMeta+a')
+ await page.getByRole('searchbox').pressSequentially('quadriceps')
+ await page.waitForURL(url=>url.searchParams.get('q')==='quadriceps')
+ await page.goBack()
+ await new Promise(resolve=>setTimeout(resolve,350))
+ assert.equal(new URL(page.url()).searchParams.get('q'),'squat')
+ assert.equal(await page.getByRole('searchbox').inputValue(),'squat')
+ console.log('Browser Back restores exercise search without rewriting the URL.')
  for (const [width,height] of [[390,844],[768,1024],[1280,800]]) {
    await page.setViewportSize({width,height})
    await page.goto(frontend)
-   for (const title of ['Weekly planner','Exercise library','Workout log','Body measurements','Settings']) {
+   for (const title of ['Weekly planner','Workout log','Progress and measurements','Settings']) {
      await page.getByRole('heading',{name:title,exact:true}).waitFor()
    }
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width)
