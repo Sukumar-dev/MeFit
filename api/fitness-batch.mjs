@@ -11,6 +11,8 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
   const url = new URL(req.url, 'http://localhost')
   const pathname = url.pathname.replace(/^\/fitness-api\//, '').replace(/\/$/, '')
+  // Vercel appends the captured rewrite segment to the function query.
+  if (url.searchParams.get('path') === pathname) url.searchParams.delete('path')
   const route = matchRoute(req.method, pathname)
   if (!route) return error(res, 404, 'The requested endpoint was not found.')
   if (route[2] === 'public') {
