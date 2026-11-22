@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Activity, ArrowLeft, ArrowRight, Dumbbell, Footprints, Heart, Search, SlidersHorizontal, X } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { EmptyState } from '../components/FitnessDesign'
+import { EmptyState, WorkspaceNav } from '../components/FitnessDesign'
 import { useAuth } from '../auth/AuthContext'
 import { getSupabaseClient } from '../auth/supabase'
 import { bodyAreas, equipmentOptions, levels, movements, filterExercises, type Exercise } from './exerciseFilters'
@@ -27,7 +27,7 @@ function Badges({ row }: { row: Exercise }) {
 }
 
 export function ExerciseLibraryPage() {
-  const { session } = useAuth()
+  const { session, logout } = useAuth()
   const [params, setParams] = useSearchParams()
   const query = params.get('q') ?? ''
   const [search, setSearch] = useState(query)
@@ -128,7 +128,8 @@ export function ExerciseLibraryPage() {
   const favoriteTab = params.get('tab') === 'favorites'
 
   return <main className="min-h-screen bg-[#f3f7f5] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <div className="mx-auto max-w-7xl space-y-5 px-5 py-8 sm:px-8">
+    <WorkspaceNav name={session?.user.displayName ?? ''} signOut={() => void logout().catch(() => setNotice('Could not sign out. Please try again.'))} />
+    <div className="mx-auto max-w-6xl space-y-5 px-4 pt-6 pb-28 sm:px-8">
       <Link to="/" className="inline-flex min-h-11 items-center gap-2 font-semibold text-teal-800 dark:text-teal-200"><ArrowLeft size={18} aria-hidden /> Dashboard</Link>
       <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Exercise library</h1>
       <label className="relative block max-w-xl"><span className="sr-only">Search by exercise or muscle</span><Search aria-hidden className="absolute left-3 top-3 size-5" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises or muscles" className={field + ' w-full pl-10'} /></label>
@@ -153,9 +154,9 @@ export function ExerciseLibraryPage() {
       </div>
       {!selected && notice && <p role="status">{notice}</p>}
       {loadError ? <div role="alert"><p>Could not load the exercise library.</p><button className={action} onClick={() => { setLoadError(false); setAttempt((value) => value + 1) }}>Try again</button></div> :
-        !rows ? <div role="status"><span className="sr-only">Loading exercises</span><div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <div key={index} className="aspect-square animate-pulse rounded-2xl bg-teal-100 motion-reduce:animate-none dark:bg-slate-800" />)}</div></div> :
+        !rows ? <div role="status"><span className="sr-only">Loading exercises</span><div aria-hidden className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <div key={index} className="aspect-square animate-pulse rounded-2xl bg-teal-100 motion-reduce:animate-none dark:bg-slate-800" />)}</div></div> :
           !results.length ? <section className="rounded-2xl border border-dashed p-8 text-center"><EmptyState title={favoriteTab && !favorites.size ? 'No favorites yet.' : 'No exercises found.'}><button className="min-h-11 underline" onClick={favoriteTab && !favorites.size ? () => change('tab', '') : clear}>{favoriteTab && !favorites.size ? 'Browse exercises' : 'Clear filters'}</button></EmptyState></section> :
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{results.slice(0, limit).map((row) => <li key={row.id} className="relative rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{results.slice(0, limit).map((row) => <li key={row.id} className="relative rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
               <button className="block w-full rounded-xl text-left" onClick={() => { setNotice(''); setSelected(row) }}><ExerciseImage row={row} /><h2 className="mt-3 pr-2 font-semibold">{row.name}</h2></button>
               <div className="mt-2"><Badges row={row} /></div>
               <button className="absolute right-5 top-5 grid size-11 place-items-center rounded-full border border-slate-200 bg-white text-teal-900 dark:bg-slate-900 dark:text-teal-200" disabled={saving} aria-label={`Favorite ${row.name}`} aria-pressed={favorites.has(row.id)} onClick={() => void toggle(row)}><Heart aria-hidden size={19} fill={favorites.has(row.id) ? 'currentColor' : 'none'} /></button>
@@ -174,7 +175,7 @@ function ExerciseDetail({ row, close, favorite, toggle, saving, notice, add }: {
   const ref = useRef<HTMLDialogElement>(null)
   const [image, setImage] = useState(0)
   useEffect(() => { ref.current?.showModal() }, [])
-  return <dialog ref={ref} onClose={close} aria-labelledby="exercise-name" className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-lg overflow-y-auto bg-white p-5 text-slate-900 backdrop:bg-slate-950/55 dark:bg-slate-900 dark:text-slate-100">
+  return <dialog ref={ref} onClose={close} aria-labelledby="exercise-name" className="fixed top-auto bottom-0 left-0 m-0 max-h-[88dvh] w-full max-w-none md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-none md:max-w-lg overflow-y-auto bg-white p-5 text-slate-900 backdrop:bg-slate-950/55 dark:bg-slate-900 dark:text-slate-100">
     <div className="flex items-start justify-between gap-4"><h2 id="exercise-name" className="text-2xl font-semibold">{row.name}</h2><button autoFocus aria-label="Close exercise details" className="grid size-11 place-items-center rounded-full border" onClick={() => ref.current?.close()}><X aria-hidden /></button></div>
     <div className="my-4"><ExerciseImage row={row} index={image} /></div>
     {row.image_paths.length > 1 && <div className="mb-4 flex items-center gap-3"><button aria-label="Previous image" disabled={image === 0} className={chip} onClick={() => setImage(image - 1)}><ArrowLeft aria-hidden size={16} /></button><span>{image + 1} / {row.image_paths.length}</span><button aria-label="Next image" disabled={image === row.image_paths.length - 1} className={chip} onClick={() => setImage(image + 1)}><ArrowRight aria-hidden size={16} /></button></div>}

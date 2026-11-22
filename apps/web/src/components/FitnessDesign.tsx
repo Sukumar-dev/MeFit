@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Activity, CalendarDays, ChartNoAxesCombined, Dumbbell, House, LogOut, Settings, Timer, X, type LucideIcon } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`mf-card p-5 sm:p-6 ${className}`}>{children}</section>
@@ -47,12 +47,12 @@ export function EmptyState({ title, children }: { title: string; children: React
 export function Drawer({ title, close, children }: { title: string; close: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => { ref.current?.showModal() }, [])
-  return <dialog ref={ref} onClose={close} aria-labelledby="fitness-drawer-title" className="mf-card text-inherit fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-xl overflow-y-auto rounded-none p-5 backdrop:bg-black/50 sm:p-8">
+  return <dialog ref={ref} onClose={close} aria-labelledby="fitness-drawer-title" className="mf-card text-inherit fixed top-auto bottom-0 left-0 m-0 max-h-[88dvh] w-full max-w-none overflow-y-auto rounded-t-[20px] p-5 pb-[max(20px,env(safe-area-inset-bottom))] md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-none md:max-w-xl md:rounded-none backdrop:bg-black/50 sm:p-8">
     <div className="mb-5 flex items-start justify-between gap-4"><h2 id="fitness-drawer-title" className="text-2xl font-bold">{title}</h2><Button autoFocus type="button" variant="ghost" aria-label="Close drawer" onClick={() => ref.current?.close()}><X aria-hidden /></Button></div>{children}
   </dialog>
 }
 
-const nav = [['Dashboard', '/', House], ['Planner', '/#planner', CalendarDays], ['Library', '/catalog', Dumbbell], ['Logging', '/#logging', Timer], ['Progress', '/#progress', ChartNoAxesCombined], ['Settings', '/#settings', Settings]] as const
+const nav = [['Home', '/home', House], ['Plan', '/plan', CalendarDays], ['Exercises', '/exercises', Dumbbell], ['Log', '/log', Timer], ['Progress', '/progress', ChartNoAxesCombined], ['Profile', '/profile', Settings]] as const
 
 export function WorkspaceNav({ name, signOut }: { name: string; signOut: () => void }) {
   const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || 'M'
@@ -60,12 +60,12 @@ export function WorkspaceNav({ name, signOut }: { name: string; signOut: () => v
     <header className="sticky top-0 z-30 border-b border-[var(--mf-border)] bg-[var(--mf-card)]">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-8">
         <Link to="/" className="flex items-center gap-2 text-xl font-bold"><span className="grid size-9 place-items-center rounded-xl bg-[#075343] text-white"><Activity aria-hidden size={19} /></span>MeFit</Link>
-        <nav aria-label="Fitness workspace" className="mf-nav hidden gap-1 text-sm font-semibold lg:flex">{nav.map(([label, href, Icon]) => <Link key={label} to={href}><Icon aria-hidden size={17} />{label}</Link>)}</nav>
+        <nav aria-label="Fitness workspace" className="mf-nav hidden gap-1 text-sm font-semibold md:flex">{nav.map(([label, href, Icon]) => <NavLink key={label} to={href}><Icon aria-hidden size={17} />{label}</NavLink>)}</nav>
         <details className="relative"><summary className="grid size-11 cursor-pointer list-none place-items-center rounded-full bg-[var(--mf-mint)] text-sm font-bold text-[var(--mf-green)]" aria-label="Account menu">{initials}</summary>
-          <div className="mf-card absolute top-full right-0 mt-2 grid min-w-40 gap-1 p-2"><Link to="/#settings" className="mf-button mf-button-ghost">Settings</Link><Button variant="ghost" onClick={signOut}><LogOut aria-hidden size={17} />Sign out</Button></div>
+          <div className="mf-card absolute top-full right-0 mt-2 grid min-w-40 gap-1 p-2"><Link to="/profile" className="mf-button mf-button-ghost">Profile</Link><Button variant="ghost" onClick={signOut}><LogOut aria-hidden size={17} />Sign out</Button></div>
         </details>
       </div>
     </header>
-    <nav aria-label="Mobile fitness workspace" className="mf-mobile-nav fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--mf-border)] bg-[var(--mf-card)] px-2 pt-1 text-[11px] font-semibold lg:hidden">{nav.slice(0, 5).map(([label, href, Icon]) => <Link key={label} to={href} className="grid min-h-12 justify-items-center gap-1 rounded-lg p-1 text-[var(--mf-green)]"><Icon aria-hidden size={19} />{label}</Link>)}</nav>
+    <nav aria-label="Mobile fitness workspace" className="mf-mobile-nav mf-nav fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--mf-border)] bg-[var(--mf-card)] px-2 pt-1 text-[11px] font-semibold md:hidden">{nav.slice(0, 5).map(([label, href, Icon]) => <NavLink key={label} to={href} className="grid min-h-12 justify-items-center gap-1 rounded-lg p-1 text-[var(--mf-green)]"><Icon aria-hidden size={19} />{label}</NavLink>)}</nav>
   </>
 }

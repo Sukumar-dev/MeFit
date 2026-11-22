@@ -37,12 +37,13 @@ export function FitnessWorkspace() {
   const [toast, setToast] = useState('')
   const [templatePreview, setTemplatePreview] = useState('')
   const [draft, setDraft] = useState<{ day: string; id?: string; title?: string; completed?: boolean; exercise?: string | null; sets?: number | null; reps?: number | null; minutes?: number | null } | null>(null)
-  const [activeExercise, setActiveExercise] = useState('')
-  const [reps, setReps] = useState(8)
+  const { pathname, state } = useLocation()
+  const [activeExercise, setActiveExercise] = useState<string>(state?.exercise ?? '')
+  const [reps, setReps] = useState<number>(state?.reps ?? 8)
   const [weight, setWeight] = useState(0)
   const [sessionSets, setSessionSets] = useState(0)
   const [summary, setSummary] = useState<number | null>(null)
-  const { hash } = useLocation()
+  const pageTitle = ({'/home': 'Today', '/plan': 'Plan', '/log': 'Workout log', '/progress': 'Progress', '/profile': 'Profile'} as Record<string, string>)[pathname]
   const [week, setWeek] = useState(0)
   const [revision, setRevision] = useState(0)
   const [data, setData] = useState<Awaited<ReturnType<typeof load>> | null>(null)
@@ -66,11 +67,6 @@ export function FitnessWorkspace() {
     }).catch(() => { if (!controller.signal.aborted) setLoadError(true) })
     return () => controller.abort()
   }, [userId, first, last, revision])
-
-  const hasData = Boolean(data)
-  useEffect(() => {
-    if (hash && hasData) document.getElementById(hash.slice(1))?.scrollIntoView()
-  }, [hash, hasData])
 
   useEffect(() => {
     if (!toast) return
@@ -124,20 +120,17 @@ export function FitnessWorkspace() {
     cursor.setDate(cursor.getDate() - 1)
   }
   const overview = (data?.overview ?? []).filter((item) => item.workout_date >= todayWeekFirst && item.workout_date <= todayWeekLast)
-  const minutes = Math.round(logs.filter((log) => log.performed_on >= todayWeekFirst && log.performed_on <= todayWeekLast).reduce((total, log) => total + log.duration_seconds, 0) / 60)
 
   return <main className="mf-page min-h-screen">
     <WorkspaceNav name={session.user.displayName} signOut={() => void logout().catch(() => setActionError('Could not sign out. Please try again.'))} />
     <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-5 px-4 pt-6 pb-28 sm:px-8 lg:pb-12">
+      {pathname !== '/home' && <h1 className="text-3xl font-bold">{pageTitle}</h1>}
       {actionError && <p role="alert" className="text-[var(--mf-error)]">{actionError}</p>}
       {toast && <Toast>{toast}</Toast>}
       {loadError ? <Card><p role="alert">Your fitness data could not be loaded.</p><Button onClick={() => setRevision((value) => value + 1)}>Try again</Button></Card> :
         !data ? <Skeleton /> : <>
-        <FitnessOverview name={session.user.displayName} now={now} onStart={(exercise, targetReps) => {
-          if (exercise) setActiveExercise(exercise)
-          if (targetReps != null) setReps(targetReps)
-        }} week={currentDays.map((day) => ({ key: dateKey(day), label: day.toLocaleDateString(undefined, { weekday: 'short' }), date: day.getDate() }))} today={today} workouts={overview} minutes={minutes} streak={streak} measurements={history} recent={logs} />
-        <div id="planner"><Panel title="Weekly planner">
+        {pathname === '/home' && <FitnessOverview name={session.user.displayName} now={now} week={currentDays.map((day) => ({ key: dateKey(day), label: day.toLocaleDateString(undefined, { weekday: 'short' }), date: day.getDate() }))} today={today} workouts={overview} streak={streak} />}
+        {pathname === '/plan' && <div id="planner"><Panel title="Weekly planner">
           <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" aria-label="Previous week" onClick={() => setWeek(week - 1)}><ChevronLeft aria-hidden size={18} /></Button>
           <span className="font-semibold">{days[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {days[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
@@ -153,11 +146,11 @@ export function FitnessWorkspace() {
               title: profile.experience === 'beginner' ? 'Beginner ' + sessions[index].toLowerCase() : sessions[index],
             })))
           })}>Generate a plan for an empty week</button></div>
-          <div aria-label="Week days" className="grid auto-cols-[minmax(145px,1fr)] grid-flow-col gap-2 overflow-x-auto pb-2 lg:grid-flow-row lg:grid-cols-7">
+          <div aria-label="Week days" className="grid auto-cols-[minmax(145px,1fr)] grid-flow-col gap-2 overflow-x-auto pb-2 snap-x snap-mandatory md:grid-flow-row md:grid-cols-7">
             {days.map((day) => {
               const key = dateKey(day)
               const items = workouts.filter((item) => item.workout_date === key)
-              return <section key={key} aria-current={key === today ? 'date' : undefined} className={`min-w-0 rounded-2xl border border-[var(--mf-border)] p-3 ${key === today ? 'bg-[var(--mf-mint)]' : ''}`}
+              return <section key={key} aria-current={key === today ? 'date' : undefined} className={`min-w-0 snap-start rounded-2xl border border-[var(--mf-border)] p-3 ${key === today ? 'bg-[var(--mf-mint)]' : ''}`}
                 onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
                   event.preventDefault()
                   const item = workouts.find((workout) => workout.id === event.dataTransfer.getData('text/plain'))
@@ -203,15 +196,15 @@ export function FitnessWorkspace() {
               </div>
               {draft.id && <label><input type="checkbox" name="complete" defaultChecked={draft.completed} /> Mark complete</label>}
               {actionError && <p role="alert" className="text-[var(--mf-error)]">{actionError}</p>}
-              <div className="flex flex-wrap gap-2"><Button disabled={pending}>Save workout</Button>
+              <div className="flex flex-wrap gap-2"><Button disabled={pending}>Save workout</Button>{draft.id && <Link className="mf-button mf-button-secondary" to="/log" state={{ exercise: draft.exercise, reps: draft.reps }}>Start workout</Link>}
               {draft.id && <Button type="button" variant="ghost" disabled={pending} onClick={() => {
                 const id = draft.id!
                 void save(() => db.from('weekly_workouts').delete().eq('id', id), () => { setDraft(null); setToast('Workout removed.') })
               }}>Remove workout</Button>}</div>
             </form>
           </Drawer>}
-        </Panel></div>
-        <div id="logging"><Panel title="Workout log">
+        </Panel></div>}
+        {pathname === '/log' && <div id="logging"><Panel title="Workout log">
           <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => {
             const input = form(event)
             void save(() => db.from('workout_logs').insert({ exercise: String(input.get('exercise')), performed_on: dateKey(new Date()), sets: 1, reps, weight_kg: weight / (pounds ? 2.2046226218 : 1), duration_seconds: Number(input.get('duration')) }), () => { setRestUntil(Date.now() + 60_000); setSessionSets((count) => count + 1); setSummary(null) })
@@ -227,17 +220,17 @@ export function FitnessWorkspace() {
           {summary !== null && <p role="status" className="rounded-xl bg-[var(--mf-mint)] p-3">Workout finished. {summary} {summary === 1 ? 'set' : 'sets'} saved.</p>}
           {!data.logs.length && <EmptyState title="No workouts logged yet"><p className="mf-muted">Save your first set to start tracking.</p></EmptyState>}
           <ul>{data.logs.slice(0, 30).map((log) => <li key={log.id}>{log.performed_on} · {log.exercise} · {log.sets} × {log.reps} · {(log.weight_kg * (pounds ? 2.2046226218 : 1)).toFixed(1)} {pounds ? 'lb' : 'kg'} · {log.duration_seconds}s</li>)}</ul>
-        </Panel></div>
-        <div id="progress" className="space-y-4"><Panel title="Progress and measurements">
+        </Panel></div>}
+        {pathname === '/progress' && <div id="progress" className="space-y-4"><Panel title="Progress and measurements">
           <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => {
             const input = form(event)
             void save(() => db.from('fitness_progress').upsert({ user_id: session.user.id, measured_on: String(input.get('date')), weight_kg: Number(input.get('weight')) / (pounds ? 2.2046226218 : 1), waist_cm: input.get('waist') ? Number(input.get('waist')) : null }, { onConflict: 'user_id,measured_on' }))
           }}><label>Date <input className={field} name="date" type="date" defaultValue={today} required /></label><label>Body weight ({pounds ? 'lb' : 'kg'}) <input className={field} name="weight" type="number" min={pounds ? 55.12 : 25} max={pounds ? 771.61 : 350} step="any" required /></label><label>Waist (cm) <input className={field} name="waist" type="number" min="30" max="300" step="any" /></label><button className={button} disabled={pending}>Save measurement</button></form>
           {!history.length && <p>No measurements saved yet.</p>}
           <ul className="space-y-2">{history.map((entry) => <li key={entry.id} className="flex flex-wrap items-center gap-3"><span>{entry.measured_on}</span><meter aria-label={`Weight on ${entry.measured_on}`} min={0} max={Math.max(...history.map((value) => value.weight_kg))} value={entry.weight_kg} /><span>{(entry.weight_kg * (pounds ? 2.2046226218 : 1)).toFixed(1)} {pounds ? 'lb' : 'kg'}{entry.waist_cm ? ` · ${entry.waist_cm} cm waist` : ''}</span></li>)}</ul>
-        </Panel><TrainingProgress logs={logs} pounds={pounds} today={now} /></div>
+        </Panel><TrainingProgress logs={logs} pounds={pounds} today={now} /></div>}
         </>}
-      <div id="settings"><Panel title="Settings">
+      {pathname === '/profile' && <div id="settings"><Panel title="Settings">
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => {
           event.preventDefault()
           const weight_unit = draftUnit ?? data?.settings?.weight_unit ?? 'kg'
@@ -249,7 +242,7 @@ export function FitnessWorkspace() {
           <Card><h3 className="font-bold">Account</h3><p className="mf-muted mt-2 break-all text-sm">{session.user.email}</p></Card>
           <Button className="justify-self-start" disabled={pending || !data}>Save settings</Button>
         </form>
-      </Panel></div>
+      </Panel></div>}
     </div>
   </main>
 }

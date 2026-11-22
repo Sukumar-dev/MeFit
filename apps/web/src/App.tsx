@@ -20,7 +20,7 @@ function StartPage() {
   const { session, authReady } = useAuth()
   if (!authReady) return <main className="grid min-h-screen place-items-center mf-page text-sm" role="status">Restoring your session…</main>
   if (!session) return <LandingPage />
-  return <FitnessWorkspace />
+  return <Navigate to="/home" replace />
 }
 
 function NotFoundPage() {
@@ -38,10 +38,16 @@ function AppRoutes() {
       <Route path="/auth/link/callback" element={<Navigate to="/login" replace />} />
       <Route element={<RequireAuth />}>
         <Route path="/profile/setup" element={<ProfilePage />} />
-        <Route path="/catalog" element={<ExerciseLibraryPage />} />
-        <Route path="/goals" element={<Navigate to="/#planner" replace />} />
-        <Route path="/admin" element={<Navigate to="/#settings" replace />} />
-        <Route path="/contribute" element={<Navigate to="/#settings" replace />} />
+        <Route path="/home" element={<FitnessWorkspace />} />
+        <Route path="/plan" element={<FitnessWorkspace />} />
+        <Route path="/log" element={<FitnessWorkspace />} />
+        <Route path="/progress" element={<FitnessWorkspace />} />
+        <Route path="/profile" element={<FitnessWorkspace />} />
+        <Route path="/exercises" element={<ExerciseLibraryPage />} />
+        <Route path="/catalog" element={<Navigate to="/exercises" replace />} />
+        <Route path="/goals" element={<Navigate to="/plan" replace />} />
+        <Route path="/admin" element={<Navigate to="/profile" replace />} />
+        <Route path="/contribute" element={<Navigate to="/profile" replace />} />
       </Route>
       <Route path="/" element={<StartPage />} />
       <Route path="*" element={<NotFoundPage />} />

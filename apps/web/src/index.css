@@ -90,3 +90,7 @@ select {
   font-weight: 400 800;
   font-display: swap;
 }
+
+.mf-page { min-height: 100dvh; }
+.mf-field { font-size: 16px; }
+.mf-mobile-nav a { display: grid; padding: 4px 2px; }
