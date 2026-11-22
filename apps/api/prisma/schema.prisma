@@ -38,6 +38,7 @@ model User {
   updatedAt            DateTime             @updatedAt
   roles                UserRole[]
   profile              Profile?
+  supabaseIdentity     SupabaseIdentity?
   goals                Goal[]
   exercisesAuthored    Exercise[]            @relation("ExerciseAuthor")
   workoutsAuthored     Workout[]             @relation("WorkoutAuthor")
@@ -48,6 +49,16 @@ model User {
   auditEvents          AuditLog[]             @relation("AuditActor")
 
   @@index([disabledAt])
+}
+
+model SupabaseIdentity {
+  issuer    String
+  subject   String
+  userId    String   @unique @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([issuer, subject])
 }
 
 model UserRole {

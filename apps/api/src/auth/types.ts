@@ -8,6 +8,7 @@ export interface AuthClaims {
   lastName?: string
   roles: MeFitRole[]
   emailVerified: boolean
+  supabaseIdentity?: { issuer: string; subject: string; linked: boolean }
 }
 
 declare global {

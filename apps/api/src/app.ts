@@ -34,7 +34,11 @@ export function createApp() {
   app.get('/ready', async (_request, response) => {
     try {
       const { prisma } = await import('./db.js')
-      await prisma.$queryRaw`SELECT 1`
+      if (process.env.AUTH_PROVIDER === 'supabase') {
+        await prisma.supabaseIdentity.findFirst({ select: { subject: true } })
+      } else {
+        await prisma.$queryRaw`SELECT 1`
+      }
       response.status(200).json({ status: 'ready' })
     } catch (error) {
       logger.error({ err: error }, 'Readiness check failed')

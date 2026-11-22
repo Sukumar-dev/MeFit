@@ -21,6 +21,10 @@ services:
         value: https://mefit-api-supabase-prod-sukumar.onrender.com
       - key: AUTH_PROVIDER
         value: supabase
+      - key: OIDC_ISSUER
+        value: https://mefit-auth-sukumar.onrender.com/realms/mefit
+      - key: OIDC_AUDIENCE
+        value: mefit-api
       - key: SUPABASE_URL
         value: https://rhvzbhlnoimvkzpyrgyn.supabase.co
       - key: SUPABASE_PUBLISHABLE_KEY

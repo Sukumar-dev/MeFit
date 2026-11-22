@@ -3,30 +3,11 @@ import { Role } from '../generated/prisma/client.js'
 import { hasRole, requireAuth, requireRole } from '../auth/authorization.js'
 import { prisma } from '../db.js'
 import { z } from 'zod'
+import { linkSupabaseIdentity } from '../auth/link-account.js'
 
 const router = Router()
 const userUpdateSchema = z.object({ display_name: z.string().trim().min(1).max(120) }).strict()
 const roleUpdateSchema = z.object({ roles: z.array(z.enum([Role.USER, Role.CONTRIBUTOR, Role.ADMIN])).min(1).max(3) }).strict()
-
-async function isVerifiedSupabaseIdentity(request: Parameters<typeof requireAuth>[0]): Promise<boolean> {
-  const baseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '')
-  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY
-  const bearer = request.header('authorization')?.match(/^Bearer\s+([^\s]+)$/i)?.[1]
-  if (!baseUrl || !publishableKey || !bearer) return false
-  try {
-    const response = await fetch(`${baseUrl}/auth/v1/user`, {
-      headers: { apikey: publishableKey, Authorization: `Bearer ${bearer}` },
-      signal: AbortSignal.timeout(5_000),
-    })
-    if (!response.ok) return false
-    const identity = await response.json() as { id?: string; email?: string; email_confirmed_at?: string | null }
-    return identity.id === request.auth?.subject
-      && identity.email?.toLowerCase() === request.auth?.email.toLowerCase()
-      && Boolean(identity.email_confirmed_at)
-  } catch {
-    return false
-  }
-}
 
 async function viewerIsAdmin(subject: string, tokenRoles: readonly string[]) {
   if (hasRole(tokenRoles, 'ADMIN')) return true
@@ -34,20 +15,19 @@ async function viewerIsAdmin(subject: string, tokenRoles: readonly string[]) {
   return hasRole(viewer?.roles.map(({ role }) => role) ?? [], 'ADMIN')
 }
 
+const linkedAccountRequired = { error: { code: 'ACCOUNT_LINK_REQUIRED', message: 'Connect your existing MeFit sign-in before continuing.' } }
+
+router.post('/user/link', requireAuth, linkSupabaseIdentity)
+
 router.post('/user', requireAuth, async (request, response, next) => {
   try {
     const auth = request.auth!
-    let existing = await prisma.user.findUnique({ where: { oidcSubject: auth.subject }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, disabledAt: true, roles: { select: { role: true } } } })
-    // Preserve an existing MeFit account and its fitness data when its owner
-    // signs in with a newly verified Supabase identity using the same email.
-    if (!existing && process.env.AUTH_PROVIDER === 'supabase') {
-      const priorAccount = await prisma.user.findUnique({ where: { email: auth.email }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, disabledAt: true, roles: { select: { role: true } } } })
+    const existing = await prisma.user.findUnique({ where: { oidcSubject: auth.subject }, include: { roles: true, profile: { select: { id: true } } } })
+    if (!existing && auth.supabaseIdentity) {
+      const priorAccount = await prisma.user.findFirst({ where: { email: { equals: auth.email, mode: 'insensitive' } }, select: { id: true } })
       if (priorAccount) {
-        if (!(await isVerifiedSupabaseIdentity(request))) {
-          response.status(403).json({ error: { code: 'EMAIL_VERIFICATION_REQUIRED', message: 'Verify this email address with Supabase before connecting it to your existing MeFit data.' } })
-          return
-        }
-        existing = await prisma.user.update({ where: { id: priorAccount.id }, data: { oidcSubject: auth.subject }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, disabledAt: true, roles: { select: { role: true } } } })
+        response.status(409).json(linkedAccountRequired)
+        return
       }
     }
     if (existing?.disabledAt) {
@@ -57,7 +37,7 @@ router.post('/user', requireAuth, async (request, response, next) => {
     const allowedRoles = [...new Set([...auth.roles, ...(existing?.roles.map(({ role }) => role) ?? [])].filter((role): role is Role => role === Role.USER || role === Role.CONTRIBUTOR || role === Role.ADMIN))]
     if (!allowedRoles.length) allowedRoles.push(Role.USER)
 
-    const user = await prisma.$transaction(async (transaction) => {
+    const user = auth.supabaseIdentity?.linked && existing ? existing : await prisma.$transaction(async (transaction) => {
       const savedUser = await transaction.user.upsert({
         where: { oidcSubject: auth.subject },
         create: { oidcSubject: auth.subject, email: auth.email, displayName: auth.displayName, firstName: auth.firstName ?? null, lastName: auth.lastName ?? null },

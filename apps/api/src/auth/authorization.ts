@@ -37,6 +37,7 @@ export function createAuthMiddleware(jwks: JWTVerifyGetKey = remoteJwks): Reques
         audience,
         algorithms: ['RS256', 'ES256'],
         clockTolerance: 5,
+        requiredClaims: ['exp'],
       })
       if (authProvider === 'supabase' && payload.aal !== 'aal2') {
         response.status(403).json({ error: { code: 'MFA_REQUIRED', message: 'Complete two-step verification before accessing MeFit.' } })
@@ -70,11 +71,35 @@ export function createAuthMiddleware(jwks: JWTVerifyGetKey = remoteJwks): Reques
         roles: [...new Set(knownRoles)],
         emailVerified: payload.email_verified === true,
       }
-      next()
     } catch (error) {
       logger.warn({ err: error, method: request.method, path: request.path }, 'Bearer token validation failed')
       response.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'The supplied access token is invalid or expired.' } })
+      return
     }
+
+    if (authProvider === 'supabase') {
+      const auth = request.auth!
+      const identity = { issuer, subject: auth.subject }
+      try {
+        const link = await prisma.supabaseIdentity.findUnique({
+          where: { issuer_subject: identity },
+          select: { user: { select: { oidcSubject: true, disabledAt: true, roles: { select: { role: true } } } } },
+        })
+        if (link?.user.disabledAt) {
+          response.status(403).json({ error: { code: 'ACCOUNT_DISABLED', message: 'This account has been disabled.' } })
+          return
+        }
+        auth.supabaseIdentity = { ...identity, linked: Boolean(link) }
+        if (link) {
+          auth.subject = link.user.oidcSubject
+          auth.roles = link.user.roles.map(({ role }) => role)
+        }
+      } catch (error) {
+        next(error)
+        return
+      }
+    }
+    next()
   }
 }
 
