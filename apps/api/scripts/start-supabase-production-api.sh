@@ -1,5 +1,5 @@
 #!/bin/sh
 set -eu
 
-node scripts/check-production-database.mjs
+node apps/api/scripts/check-production-database.mjs
 exec npm --workspace apps/api run start

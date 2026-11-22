@@ -9,7 +9,7 @@ services:
     dockerContext: .
     healthCheckPath: /ready
     # Check the database target and use the existing schema without running migrations.
-    dockerCommand: /bin/sh scripts/start-supabase-production-api.sh
+    dockerCommand: /bin/sh apps/api/scripts/start-supabase-production-api.sh
     envVars:
       - key: NODE_ENV
         value: production
