@@ -42,7 +42,7 @@ export function FitnessWorkspace() {
   const [weight, setWeight] = useState(0)
   const [sessionSets, setSessionSets] = useState(0)
   const [summary, setSummary] = useState<number | null>(null)
-  const { hash } = useLocation()
+  const { hash, key } = useLocation()
   const [params, setParams] = useSearchParams()
   const requestedWeek = Number(params.get('week') ?? 0)
   const week = Number.isInteger(requestedWeek) && Math.abs(requestedWeek) <= 520 ? requestedWeek : 0
@@ -82,8 +82,12 @@ export function FitnessWorkspace() {
 
   const hasData = Boolean(data)
   useEffect(() => {
-    if (hash && hasData) document.getElementById(hash.slice(1))?.scrollIntoView()
-  }, [hash, hasData])
+    if (hash === '#dashboard') {
+      window.scrollTo(0, 0)
+    } else if (hash && hasData) {
+      document.getElementById(hash.slice(1))?.scrollIntoView()
+    }
+  }, [hash, key, hasData])
 
   useEffect(() => {
     if (!toast) return
