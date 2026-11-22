@@ -47,3 +47,7 @@ The brief’s admin area is tracked under FE-01/02/11 and API-03. Program and re
 - Candidate lint, TypeScript builds and 36 frontend tests passed. Lint retains existing warnings.
 - The draft header policy constrains base URLs, embedded objects and framing. It deliberately does not claim a fully tested script-origin allowlist.
 - The API transition, backup policy and three-role hosted checks remain release blockers. This audit does not authorize a production data migration.
+
+## REST profile candidate
+
+The candidate route `/fitness-api/profile` provides self-scoped GET and PUT through a Vercel function. It validates Supabase asymmetric JWTs and AAL2 before forwarding the same bearer token to the RLS-protected data API. Run `node --test tests/fitness-profile.test.mjs` for the pre-release request-handler tests. This is the first API slice. The browser cutover and authenticated production verification are pending, so no SRS status changed.

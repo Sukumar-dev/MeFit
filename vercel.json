@@ -4,6 +4,10 @@
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     {
+      "source": "/fitness-api/profile",
+      "destination": "/api/fitness-profile"
+    },
+    {
       "source": "/api/:path*",
       "has": [
         {
