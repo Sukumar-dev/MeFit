@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/AuthContext'
+import { ThemePreference } from './components/ThemePreference'
+import { ImageCredits } from './pages/ImageCredits'
 import { LandingPage } from './pages/LandingPage'
 import { RequireAuth } from './auth/RequireAuth'
 
@@ -27,6 +29,7 @@ function NotFoundPage() {
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/credits" element={<ImageCredits />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage initialFlow="register" />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -52,7 +55,7 @@ function AppRoutes() {
 }
 
 function App() {
-  return <BrowserRouter><AuthProvider><Suspense fallback={<main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600">Loading MeFit…</main>}><AppRoutes /></Suspense></AuthProvider></BrowserRouter>
+  return <BrowserRouter><AuthProvider><ThemePreference /><Suspense fallback={<main className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-600">Loading MeFit…</main>}><AppRoutes /></Suspense></AuthProvider></BrowserRouter>
 }
 
 export default App
