@@ -6,10 +6,11 @@ describe('PostgreSQL development data', () => {
   afterAll(async () => prisma.$disconnect())
 
   it('persists the seeded catalog records in PostgreSQL', async () => {
+    // The seed owns the shared catalog. Browser tests also create user-authored items.
     const [exerciseCount, workoutCount, programCount] = await Promise.all([
-      prisma.exercise.count({ where: { archivedAt: null } }),
-      prisma.workout.count({ where: { archivedAt: null } }),
-      prisma.program.count({ where: { archivedAt: null } }),
+      prisma.exercise.count({ where: { archivedAt: null, creatorId: null } }),
+      prisma.workout.count({ where: { archivedAt: null, creatorId: null } }),
+      prisma.program.count({ where: { archivedAt: null, creatorId: null } }),
     ])
 
     expect(exerciseCount).toBe(8)

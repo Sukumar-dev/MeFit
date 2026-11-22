@@ -40,7 +40,11 @@ router.post('/user', requireAuth, async (request, response, next) => {
     const user = auth.supabaseIdentity?.linked && existing ? existing : await prisma.$transaction(async (transaction) => {
       const savedUser = await transaction.user.upsert({
         where: { oidcSubject: auth.subject },
-        create: { oidcSubject: auth.subject, email: auth.email, displayName: auth.displayName, firstName: auth.firstName ?? null, lastName: auth.lastName ?? null },
+        create: { oidcSubject: auth.subject,
+          ...(process.env.AUTH_PROVIDER === 'dual' && auth.supabaseIdentity ? {
+            supabaseIdentity: { create: { issuer: auth.supabaseIdentity.issuer, subject: auth.supabaseIdentity.subject } },
+          } : {}),
+          email: auth.email, displayName: auth.displayName, firstName: auth.firstName ?? null, lastName: auth.lastName ?? null },
         update: {
           email: auth.email,
           ...(auth.displayName ? { displayName: auth.displayName } : {}),
@@ -133,12 +137,19 @@ router.patch('/user/:user_id', requireAuth, async (request, response, next) => {
   const parsed = userUpdateSchema.safeParse(request.body)
   if (!parsed.success) return response.status(400).json({ error: { code: 'INVALID_INPUT', message: 'Provide a valid display_name. Passwords are changed through the identity provider.' } })
   try {
-    const id = request.params.user_id as string
-    const target = await prisma.user.findUnique({ where: { id }, select: { id: true, oidcSubject: true } })
+    const auth = request.auth!
+    const routeId = request.params.user_id as string
+    // The preserved frontend uses its Supabase subject in the display-name URL.
+    const ownLegacyFrontendAlias = process.env.AUTH_PROVIDER === 'dual' && auth.supabaseIdentity?.linked &&
+      routeId === auth.supabaseIdentity.subject
+    const target = await prisma.user.findUnique({
+      where: ownLegacyFrontendAlias ? { oidcSubject: auth.subject } : { id: routeId },
+      select: { id: true, oidcSubject: true },
+    })
     if (!target) return response.status(404).json({ error: { code: 'NOT_FOUND', message: 'The requested user was not found.' } })
     if (target.oidcSubject !== request.auth!.subject && !(await viewerIsAdmin(request.auth!.subject, request.auth!.roles))) return response.status(403).json({ error: { code: 'FORBIDDEN', message: 'You may update only your own account.' } })
     const [firstName, ...lastNameParts] = parsed.data.display_name.split(/\s+/)
-    const user = await prisma.user.update({ where: { id }, data: { displayName: parsed.data.display_name, firstName: firstName ?? null, lastName: lastNameParts.join(' ') || null }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, updatedAt: true } })
+    const user = await prisma.user.update({ where: { id: target.id }, data: { displayName: parsed.data.display_name, firstName: firstName ?? null, lastName: lastNameParts.join(' ') || null }, select: { id: true, email: true, displayName: true, firstName: true, lastName: true, updatedAt: true } })
     response.json({ id: user.id, email: user.email, display_name: user.displayName, first_name: user.firstName, last_name: user.lastName, updated_at: user.updatedAt })
   } catch (error) { next(error) }
 })
@@ -179,7 +190,7 @@ router.post('/user/:user_id/update_password', requireAuth, async (request, respo
     const target = await prisma.user.findUnique({ where: { id: userId }, select: { oidcSubject: true } })
     if (!target) return response.status(404).json({ error: { code: 'NOT_FOUND', message: 'The requested user was not found.' } })
     if (target.oidcSubject !== request.auth!.subject && !(await viewerIsAdmin(request.auth!.subject, request.auth!.roles))) return response.status(403).json({ error: { code: 'FORBIDDEN', message: 'You may change only your own password.' } })
-    if (process.env.AUTH_PROVIDER === 'supabase') {
+    if (request.auth!.supabaseIdentity) {
       response.status(303).location(`${(process.env.WEB_ORIGIN ?? 'http://localhost:5173').replace(/\/$/, '')}/login`).end()
       return
     }

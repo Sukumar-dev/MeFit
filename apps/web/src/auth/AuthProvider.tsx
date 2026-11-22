@@ -7,7 +7,7 @@ import { getSupabaseClient, matchesSupabaseAccount, supabaseAuthConfigured, toAp
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<AppSession | null>(() => useSupabaseAuth ? null : readSession())
   const [authReady, setAuthReady] = useState(() => !useSupabaseAuth || !supabaseAuthConfigured)
-  const sessionRef = useRef(useSupabaseAuth ? readSession() : session)
+  const sessionRef = useRef(useSupabaseAuth ? readSession({ allowExpiredSupabase: true }) : session)
 
   useEffect(() => {
     if (!useSupabaseAuth || !supabaseAuthConfigured) return
@@ -67,18 +67,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const accessToken = session?.accessToken
     if (!accessToken) return
+    const requestedSession = sessionRef.current
     const controller = new AbortController()
     fetch(`${apiUrl.replace(/\/$/, '')}/user`, {
       headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
       signal: controller.signal,
     }).then(async (response) => {
       if (!response.ok) return null
-      return await response.json() as { display_name?: string | null; first_name?: string | null; last_name?: string | null }
+      return await response.json() as { id?: string; display_name?: string | null; first_name?: string | null; last_name?: string | null; roles?: string[]; has_profile?: boolean }
     }).then((profile) => {
       if (!profile || controller.signal.aborted) return
       const current = sessionRef.current
-      if (!current || current.accessToken !== accessToken) return
-      const updated: AppSession = { ...current, user: { ...current.user, displayName: profile.display_name?.trim() ?? '', firstName: profile.first_name ?? undefined, lastName: profile.last_name ?? undefined } }
+      if (!current || current !== requestedSession || current.accessToken !== accessToken) return
+      const updated: AppSession = {
+        ...current,
+        user: {
+          ...current.user,
+          id: profile.id ?? current.user.id,
+          displayName: profile.display_name?.trim() ?? '',
+          firstName: profile.first_name ?? undefined,
+          lastName: profile.last_name ?? undefined,
+          roles: profile.roles ?? current.user.roles,
+          hasProfile: profile.has_profile ?? current.user.hasProfile,
+        },
+      }
       sessionRef.current = updated
       storeSession(updated)
       setSessionState(updated)
@@ -93,8 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
   const logout = useCallback(async () => {
     if (useSupabaseAuth && supabaseAuthConfigured) {
-      const { error } = await getSupabaseClient().auth.signOut({ scope: 'local' })
-      if (error) throw error
+      const auth = getSupabaseClient().auth
+      const { error } = await auth.signOut({ scope: 'local' })
+      if (error) {
+        const remaining = await auth.getSession()
+        if (remaining.error || remaining.data.session) throw error
+      }
       clearSession()
       setSessionState(null)
       window.location.assign('/login')

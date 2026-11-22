@@ -24,12 +24,13 @@ export function fullNameForUser(user: AppSession['user']): string {
 
 const SESSION_KEY = 'mefit.session'
 
-export function readSession(): AppSession | null {
+export function readSession({ allowExpiredSupabase = false } = {}): AppSession | null {
   try {
     const stored = window.sessionStorage.getItem(SESSION_KEY)
     if (!stored) return null
     const session = JSON.parse(stored) as AppSession
-    if (!session.accessToken || session.expiresAt <= Date.now()) {
+    const expired = session.expiresAt <= Date.now()
+    if (!session.accessToken || (expired && !(allowExpiredSupabase && session.authProvider === 'supabase'))) {
       window.sessionStorage.removeItem(SESSION_KEY)
       return null
     }

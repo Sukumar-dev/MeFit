@@ -49,12 +49,18 @@ router.patch('/admin/contributor-requests/:request_id', requireAuth, requireRole
     if (!existing) return response.status(404).json({ error: { code: 'NOT_FOUND', message: 'The contributor request was not found.' } })
     if (existing.status !== ContributorRequestStatus.PENDING) return response.status(409).json({ error: { code: 'ALREADY_REVIEWED', message: 'This contributor request has already been reviewed.' } })
     const item = await prisma.$transaction(async (tx) => {
-      const reviewed = await tx.contributorRequest.update({ where: { id: requestId }, data: { status: parsed.data.status, reviewerId: actor.id, reviewedAt: new Date() } })
+      const reviewedAt = new Date()
+      const { count } = await tx.contributorRequest.updateMany({
+        where: { id: requestId, status: ContributorRequestStatus.PENDING },
+        data: { status: parsed.data.status, reviewerId: actor.id, reviewedAt },
+      })
+      if (count === 0) return null
       if (parsed.data.status === ContributorRequestStatus.APPROVED) await tx.userRole.upsert({ where: { userId_role: { userId: existing.userId, role: Role.CONTRIBUTOR } }, create: { userId: existing.userId, role: Role.CONTRIBUTOR }, update: {} })
       await tx.auditLog.create({ data: { actorId: actor.id, action: `CONTRIBUTOR_REQUEST_${parsed.data.status}`, targetType: 'ContributorRequest', targetId: requestId, metadata: { user_id: existing.userId } } })
-      return reviewed
+      return reviewedAt
     })
-    response.json({ id: item.id, status: item.status, reviewed_at: item.reviewedAt })
+    if (!item) return response.status(409).json({ error: { code: 'ALREADY_REVIEWED', message: 'This contributor request has already been reviewed.' } })
+    response.json({ id: requestId, status: parsed.data.status, reviewed_at: item })
   } catch (error) { next(error) }
 })
 

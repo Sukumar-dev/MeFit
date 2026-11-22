@@ -19,6 +19,7 @@ const ContributorPage = lazy(() => import('./pages/ContributorPage').then((modul
 function HomePage() {
   const { session, logout } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState(false)
   const [progress, setProgress] = useState<{ today: string; goal: { id: string; name: string; description: string; objective: string; status: string; start_date: string; end_date: string; total_workouts: number; completed_workouts: number; progress_percent: number; days_left: number; workouts: Array<{ id: string; name: string; type: string; completed_at: string | null }> } | null } | null>(null)
   const [progressError, setProgressError] = useState<string | null>(null)
   const accessToken = session?.accessToken
@@ -39,22 +40,29 @@ function HomePage() {
 
   async function signOut() {
     setSigningOut(true)
-    await logout()
+    setSignOutError(false)
+    try {
+      await logout()
+    } catch {
+      setSignOutError(true)
+      setSigningOut(false)
+    }
   }
 
   return (
     <main className="min-h-screen bg-[#f3f7f5] text-slate-900">
       <header className="border-b border-emerald-950/10 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-y-2 px-5 py-4 sm:px-8">
           <Link to="/" className="flex items-center gap-3 text-lg font-semibold"><span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-900 text-lime-200"><Activity size={19} /></span>MeFit</Link>
+          <nav aria-label="Dashboard" className="order-last flex w-full flex-wrap items-center gap-x-4 text-sm font-semibold md:order-none md:ml-auto md:mr-4 md:w-auto [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center"><Link to="/catalog" className="text-slate-600 hover:text-emerald-900">Library</Link><Link to="/goals" className="text-slate-600 hover:text-emerald-900">Goals</Link>{session.user.roles.some((role) => role === 'CONTRIBUTOR' || role === 'ADMIN') && <Link to="/contribute" className="text-slate-600 hover:text-emerald-900">Contribute</Link>}{session.user.roles.some((role) => role === 'ADMIN') && <Link to="/admin" className="text-slate-600 hover:text-emerald-900">Admin</Link>}</nav>
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-            <nav className="hidden items-center gap-3 text-sm font-semibold md:flex"><Link to="/catalog" className="text-slate-600 hover:text-emerald-900">Library</Link><Link to="/goals" className="text-slate-600 hover:text-emerald-900">Goals</Link>{session.user.roles.some((role) => role === 'CONTRIBUTOR' || role === 'ADMIN') && <Link to="/contribute" className="text-slate-600 hover:text-emerald-900">Contribute</Link>}{session.user.roles.some((role) => role === 'ADMIN') && <Link to="/admin" className="text-slate-600 hover:text-emerald-900">Admin</Link>}</nav>
             <div className="min-w-0 max-w-[min(42vw,14rem)] text-right sm:max-w-56"><p className="break-words text-xs font-semibold leading-4 sm:text-sm">{fullName || 'Your account'}</p><p className="break-all text-[10px] leading-4 text-slate-500 sm:text-xs">{session.user.email}</p></div>
             <button type="button" onClick={() => void signOut()} disabled={signingOut} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 sm:gap-2 sm:px-3 sm:text-sm">
               <LogOut size={16} />{signingOut ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
         </div>
+        {signOutError && <p role="alert" className="mx-auto max-w-6xl px-5 pb-3 text-sm text-rose-700 sm:px-8">Could not sign out. Please try again.</p>}
       </header>
       <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="max-w-3xl">

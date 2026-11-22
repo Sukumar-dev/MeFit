@@ -29,7 +29,7 @@ it('links both sign-ins without changing account data and preserves access throu
   })
   const origin = `http://127.0.0.1:${(provider.address() as AddressInfo).port}`
   const legacyIssuer = `${origin}/legacy`
-  vi.stubEnv('AUTH_PROVIDER', 'supabase')
+  vi.stubEnv('AUTH_PROVIDER', 'dual')
   vi.stubEnv('OIDC_ISSUER', legacyIssuer)
   vi.stubEnv('OIDC_AUDIENCE', 'mefit-api')
   vi.stubEnv('SUPABASE_URL', origin)
@@ -74,6 +74,25 @@ it('links both sign-ins without changing account data and preserves access throu
       api.post('/api/user/link').set('Authorization', supabaseAuth).send({ legacy_access_token: legacyAccessToken })
 
     expect((await api.get('/ready')).status).toBe(200)
+    expect((await api.get('/api/profile').set('Authorization', legacyAuth)).body.id).toBe(before.profile?.id)
+    expect((await api.get('/api/profile')).status).toBe(401)
+    const expiredLegacyToken = await new SignJWT({ email })
+      .setProtectedHeader({ alg: 'RS256', kid: 'legacy' }).setIssuer(legacyIssuer)
+      .setAudience('mefit-api').setSubject(legacySubject).setExpirationTime('1 minute ago').sign(keycloakKey.privateKey)
+    expect((await api.get('/api/profile').set('Authorization', `Bearer ${expiredLegacyToken}`)).status).toBe(401)
+
+    for (const overrides of [
+      { issuer: legacyIssuer, audience: 'mefit-api', expiration: '5m' },
+      { issuer: `${origin}/auth/v1`, audience: 'mefit-api', expiration: '5m' },
+      { issuer: `${origin}/auth/v1`, audience: 'authenticated', expiration: '1 minute ago' },
+      { issuer: `${origin}/untrusted`, audience: 'authenticated', expiration: '5m' },
+    ]) {
+      const wrongToken = await new SignJWT({ email, aal: 'aal2' })
+        .setProtectedHeader({ alg: 'ES256', kid: 'supabase' }).setIssuer(overrides.issuer)
+        .setAudience(overrides.audience).setSubject(supabaseSubject).setExpirationTime(overrides.expiration)
+        .sign(supabaseKey.privateKey)
+      expect((await api.get('/api/profile').set('Authorization', `Bearer ${wrongToken}`)).status).toBe(401)
+    }
     expect((await api.post('/api/user').set('Authorization', supabaseAuth)).body.error.code).toBe('ACCOUNT_LINK_REQUIRED')
     expect((await api.get('/api/profile').set('Authorization', supabaseAuth)).status).toBe(404)
     expect((await link('invalid')).status).toBe(401)
@@ -95,6 +114,8 @@ it('links both sign-ins without changing account data and preserves access throu
     expect(linkedProfile.status).toBe(200)
     expect(linkedProfile.body.id).toBe(before.profile?.id)
     expect(await snapshot()).toEqual(before)
+    expect((await api.get('/api/admin/users').set('Authorization', legacyAuth)).status).toBe(403)
+    expect((await api.get('/api/admin/users').set('Authorization', supabaseAuth)).status).toBe(403)
 
     expect((await api.post('/api/user').set('Authorization', freshAuth)).status).toBe(201)
     const created = await api.post('/api/profile').set('Authorization', freshAuth).send(profile)
@@ -103,6 +124,30 @@ it('links both sign-ins without changing account data and preserves access throu
     expect(changed.status).toBe(200)
     expect((await api.get('/api/profile').set('Authorization', freshAuth)).body)
       .toMatchObject({ id: created.body.id, timezone: 'Europe/London' })
+
+    expect((await api.patch(`/api/user/${freshSubject}`).set('Authorization', freshAuth)
+      .send({ display_name: 'Rollback frontend name' })).status).toBe(200)
+    expect((await api.patch(`/api/user/${supabaseSubject}`).set('Authorization', freshAuth)
+      .send({ display_name: 'Wrong account' })).status).toBe(404)
+
+    const restored = request((await import('../src/app.js')).createApp())
+    expect((await restored.get('/api/profile').set('Authorization', freshAuth)).body)
+      .toMatchObject({ id: created.body.id, timezone: 'Europe/London' })
+    expect((await restored.get('/api/profile').set('Authorization', legacyAuth)).body).toEqual(linkedProfile.body)
+    expect((await restored.get('/api/profile').set('Authorization', supabaseAuth)).body).toEqual(linkedProfile.body)
+    expect(await prisma.supabaseIdentity.count({ where: { subject: { in: [supabaseSubject, freshSubject] } } })).toBe(2)
+
+    const freshOwner = await prisma.supabaseIdentity.findFirstOrThrow({ where: { subject: freshSubject } })
+    const review = await prisma.contributorRequest.create({ data: { userId: freshOwner.userId } })
+    await prisma.userRole.create({ data: { userId: freshOwner.userId, role: 'ADMIN' } })
+    const decisions = await Promise.all(['APPROVED', 'REJECTED'].map(status =>
+      api.patch(`/api/admin/contributor-requests/${review.id}`).set('Authorization', freshAuth).send({ status }),
+    ))
+    expect(decisions.map(({ status }) => status).sort()).toEqual([200, 409])
+    const decision = decisions.find(({ status }) => status === 200)!.body.status
+    expect(await prisma.contributorRequest.findUnique({ where: { id: review.id } })).toMatchObject({ status: decision })
+    expect(await prisma.userRole.count({ where: { userId: freshOwner.userId, role: 'CONTRIBUTOR' } }))
+      .toBe(decision === 'APPROVED' ? 1 : 0)
 
     vi.stubEnv('AUTH_PROVIDER', 'keycloak')
     vi.resetModules()
@@ -113,7 +158,7 @@ it('links both sign-ins without changing account data and preserves access throu
     expect(legacyProfile.body).toEqual(linkedProfile.body)
     expect(await snapshot()).toEqual(before)
   } finally {
-    await prisma.user.deleteMany({ where: { oidcSubject: { in: [legacySubject, freshSubject] } } })
+    await prisma.user.deleteMany({ where: { OR: [{ oidcSubject: legacySubject }, { supabaseIdentity: { subject: freshSubject } }] } })
     await Promise.all([prisma.$disconnect(), rollbackDb?.$disconnect()])
     vi.unstubAllEnvs()
     await new Promise<void>((resolve) => provider.close(() => resolve()))

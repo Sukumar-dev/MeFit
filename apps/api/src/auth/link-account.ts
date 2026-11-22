@@ -40,7 +40,7 @@ export const linkSupabaseIdentity: RequestHandler = async (request, response, ne
       algorithms: ['RS256', 'ES256'],
       requiredClaims: ['exp', 'sub'],
     })
-    if (!payload.sub || payload.sub === identity.subject) throw new Error('Invalid legacy subject')
+    if (!payload.sub || payload.sub.startsWith('supabase:')) throw new Error('Invalid legacy subject')
     legacySubject = payload.sub
   } catch {
     response.status(401).json({ error: { code: 'INVALID_LEGACY_SESSION', message: 'Sign in with your existing MeFit account again.' } })

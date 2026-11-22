@@ -51,3 +51,12 @@ test('a user can save a weekly workout goal and mark its workout complete', asyn
   await expect(goalCard).toContainText('1/1 sessions complete')
   await expect(goalCard.getByRole('button', { name: 'Done' })).toBeDisabled()
 })
+
+test('dashboard navigation stays visible and usable at phone width', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await registerAndCompleteMfa(page)
+  const navigation = page.getByRole('navigation', { name: 'Dashboard' })
+  await expect(navigation.getByRole('link', { name: 'Library' })).toBeVisible()
+  await navigation.getByRole('link', { name: 'Goals' }).click()
+  await expect(page.getByRole('heading', { name: 'Manage goals' })).toBeVisible()
+})

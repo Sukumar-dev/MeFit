@@ -34,7 +34,7 @@ export function createApp() {
   app.get('/ready', async (_request, response) => {
     try {
       const { prisma } = await import('./db.js')
-      if (process.env.AUTH_PROVIDER === 'supabase') {
+      if (['supabase', 'dual'].includes(process.env.AUTH_PROVIDER ?? '')) {
         await prisma.supabaseIdentity.findFirst({ select: { subject: true } })
       } else {
         await prisma.$queryRaw`SELECT 1`
