@@ -1,0 +1,35 @@
+# New production API for Supabase. Import as a separate Blueprint.
+services:
+  - type: web
+    name: mefit-api-supabase-prod-sukumar
+    runtime: docker
+    region: virginia
+    plan: free
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
+    # Check the database target and use the existing schema without running migrations.
+    dockerCommand: /bin/sh -c "node scripts/check-production-database.mjs && npm --workspace apps/api run start"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: WEB_ORIGIN
+        value: https://mefit-fitness-planner.vercel.app
+      - key: API_PUBLIC_ORIGIN
+        value: https://mefit-api-supabase-prod-sukumar.onrender.com
+      - key: AUTH_PROVIDER
+        value: supabase
+      - key: SUPABASE_URL
+        value: https://rhvzbhlnoimvkzpyrgyn.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_ISSUER
+        value: https://rhvzbhlnoimvkzpyrgyn.supabase.co/auth/v1
+      - key: SUPABASE_JWKS_URL
+        value: https://rhvzbhlnoimvkzpyrgyn.supabase.co/auth/v1/.well-known/jwks.json
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: DATABASE_URL
+        sync: false
